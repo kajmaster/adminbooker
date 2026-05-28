@@ -1,0 +1,19 @@
+{
+  "leverancier": {
+    "company_name": "Demo"
+  },
+  "factuurnummer": "123",
+  "datum": "2025-12-18",
+  "vervaldatum": "2025-12-31",
+  "valuta": "EUR",
+  "prijzen_incl_btw": false,
+  "regels": [
+    {
+      "omschrijving": "Demo kosten",
+      "aantal": 1,
+      "prijs_per_stuk": 33.00,
+      "btw_percentage": 21,
+      "grootboek_hint": "Algemene kosten"
+    }
+  ]
+}

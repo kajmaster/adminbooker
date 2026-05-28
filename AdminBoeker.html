@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AdminBoeker - AI-boekhouder voor Moneybird</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    :root{
+      --bg:#fafafa; --bg-elev:#fff; --bg-soft:#f4f4f5;
+      --border:#e4e4e7; --border-strong:#d4d4d8;
+      --text:#09090b; --text-muted:#52525b; --text-subtle:#71717a;
+      --primary:#0f172a; --primary-hover:#1e293b;
+      --accent:#2563eb; --accent-soft:#dbeafe;
+      --success:#16a34a; --success-soft:#dcfce7;
+      --error:#dc2626; --error-soft:#fee2e2;
+      --warning:#d97706; --warning-soft:#fef3c7;
+      --shadow-sm:0 1px 2px 0 rgb(0 0 0 / 0.05);
+      --shadow:0 1px 3px 0 rgb(0 0 0 / 0.07), 0 1px 2px -1px rgb(0 0 0 / 0.05);
+      --shadow-md:0 4px 6px -1px rgb(0 0 0 / 0.08), 0 2px 4px -2px rgb(0 0 0 / 0.05);
+      --shadow-lg:0 10px 15px -3px rgb(0 0 0 / 0.08), 0 4px 6px -4px rgb(0 0 0 / 0.05);
+      --radius:10px; --radius-lg:16px;
+    }
+    html,body{height:100%}
+    body{font-family:'Inter',system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--text);line-height:1.5;-webkit-font-smoothing:antialiased}
+    .mono{font-family:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,monospace}
+    .app{max-width:1080px;margin:0 auto;padding:32px 24px 80px}
+    .topbar{display:flex;align-items:center;justify-content:space-between;gap:16px;padding-bottom:24px;border-bottom:1px solid var(--border);margin-bottom:40px}
+    .brand{display:flex;align-items:center;gap:12px}
+    .brand-logo{width:36px;height:36px;border-radius:9px;background:linear-gradient(135deg,#0f172a 0%,#334155 100%);display:flex;align-items:center;justify-content:center;box-shadow:var(--shadow-md)}
+    .brand-logo svg{width:18px;height:18px;color:#fff}
+    .brand-name{font-weight:700;font-size:17px;letter-spacing:-0.01em}
+    .brand-tag{font-size:13px;color:var(--text-subtle)}
+    .top-right{display:flex;align-items:center;gap:10px}
+    .status-pill{display:inline-flex;align-items:center;gap:8px;padding:6px 12px;border-radius:999px;background:var(--bg-soft);border:1px solid var(--border);font-size:13px;color:var(--text-muted);font-weight:500}
+    .status-pill .dot{width:8px;height:8px;border-radius:50%;background:var(--text-subtle)}
+    .status-pill.ok .dot{background:var(--success);box-shadow:0 0 0 3px var(--success-soft)}
+    .status-pill.error .dot{background:var(--error)}
+    .status-pill.warn .dot{background:var(--warning);box-shadow:0 0 0 3px var(--warning-soft)}
+    .icon-btn{width:36px;height:36px;border-radius:9px;background:var(--bg-elev);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text-muted);transition:all .15s}
+    .icon-btn:hover{background:var(--bg-soft);color:var(--text)}
+    .icon-btn svg{width:16px;height:16px}
+
+    .hero{margin-bottom:32px}
+    .hero h1{font-size:32px;line-height:1.2;letter-spacing:-0.025em;font-weight:700;margin-bottom:10px}
+    .hero p{font-size:15px;color:var(--text-muted);max-width:600px}
+
+    .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:24px}
+    .stat{background:var(--bg-elev);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px}
+    .stat .label{font-size:12px;text-transform:uppercase;letter-spacing:0.04em;color:var(--text-subtle);font-weight:500}
+    .stat .value{font-size:22px;font-weight:600;letter-spacing:-0.015em;margin-top:4px}
+    .stat .delta{font-size:12px;color:var(--text-muted);margin-top:2px}
+
+    .dropzone{display:block;width:100%;border:2px dashed var(--border-strong);background:var(--bg-elev);border-radius:var(--radius-lg);padding:64px 32px;text-align:center;cursor:pointer;transition:all .18s;box-shadow:var(--shadow-sm);user-select:none}
+    .dropzone:hover{border-color:#94a3b8;background:#fcfcfd}
+    .dropzone.is-drag{border-color:var(--accent);background:var(--accent-soft);box-shadow:var(--shadow-lg)}
+    .dropzone.is-busy{pointer-events:none;opacity:.7}
+    .dropzone-inner{display:flex;flex-direction:column;align-items:center;justify-content:center}
+    .dropzone-icon{width:56px;height:56px;border-radius:14px;background:linear-gradient(135deg,#f1f5f9 0%,#e2e8f0 100%);display:flex;align-items:center;justify-content:center;color:var(--primary);margin-bottom:16px}
+    .dropzone-icon svg{width:24px;height:24px}
+    .dropzone-title{font-size:18px;font-weight:600;margin-bottom:6px;letter-spacing:-0.01em}
+    .dropzone-sub{font-size:14px;color:var(--text-muted);margin-bottom:18px;max-width:520px}
+    .dropzone-hint{font-size:12px;color:var(--text-subtle);margin-top:14px}
+    .file-input-hidden{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
+
+    .btn{display:inline-flex;align-items:center;gap:8px;font-family:inherit;font-size:14px;font-weight:500;padding:9px 16px;border-radius:8px;cursor:pointer;border:0;transition:all .15s}
+    .btn-primary{background:var(--primary);color:#fff;box-shadow:var(--shadow)}
+    .btn-primary:hover{background:var(--primary-hover);transform:translateY(-1px)}
+    .btn-ghost{background:transparent;color:var(--text-muted);border:1px solid var(--border)}
+    .btn-ghost:hover{background:var(--bg-soft);color:var(--text)}
+    .btn-sm{padding:6px 11px;font-size:13px}
+
+    .feed{margin-top:32px;display:flex;flex-direction:column;gap:12px}
+    .feed-empty{padding:24px;text-align:center;color:var(--text-subtle);font-size:13px;border:1px dashed var(--border);border-radius:var(--radius)}
+    .card{background:var(--bg-elev);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px;box-shadow:var(--shadow-sm);animation:slideIn .35s cubic-bezier(0.22,1,0.36,1)}
+    @keyframes slideIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
+    .card-row{display:flex;align-items:center;gap:14px}
+    .card-icon{flex:0 0 auto;width:36px;height:36px;border-radius:9px;display:flex;align-items:center;justify-content:center}
+    .card-icon svg{width:18px;height:18px}
+    .card-icon.ok{background:var(--success-soft);color:var(--success)}
+    .card-icon.error{background:var(--error-soft);color:var(--error)}
+    .card-icon.warn{background:var(--warning-soft);color:var(--warning)}
+    .card-icon.busy{background:var(--bg-soft);color:var(--text-muted)}
+    .card-body{flex:1;min-width:0}
+    .card-title{font-weight:600;font-size:14px;color:var(--text);margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .card-sub{font-size:12px;color:var(--text-muted)}
+    .card-meta{display:flex;gap:18px;margin-top:14px;padding-top:14px;border-top:1px solid var(--border);font-size:13px;flex-wrap:wrap}
+    .card-meta .item{display:flex;flex-direction:column;gap:2px}
+    .card-meta .label{font-size:11px;text-transform:uppercase;letter-spacing:0.04em;color:var(--text-subtle);font-weight:500}
+    .card-meta .value{font-weight:500;color:var(--text)}
+    .card-link{display:inline-flex;align-items:center;gap:6px;color:var(--accent);text-decoration:none;font-weight:500;font-size:13px;margin-top:10px}
+    .card-link:hover{text-decoration:underline}
+    .json-block{margin-top:14px;padding:12px 14px;background:#0f172a;color:#e2e8f0;border-radius:8px;font-size:12px;overflow:auto;max-height:280px}
+    .json-block pre{font-family:'JetBrains Mono',monospace;white-space:pre-wrap;word-break:break-all}
+
+    .spinner{width:14px;height:14px;border-radius:50%;border:2px solid var(--border);border-top-color:var(--text-muted);animation:spin .8s linear infinite}
+    @keyframes spin{to{transform:rotate(360deg)}}
+
+    .footer{margin-top:48px;padding-top:24px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;font-size:12px;color:var(--text-subtle)}
+
+    /* Settings modal */
+    .modal-bg{position:fixed;inset:0;background:rgb(0 0 0 / 0.4);display:none;align-items:center;justify-content:center;z-index:100;animation:fadeIn .2s}
+    .modal-bg.is-open{display:flex}
+    @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+    .modal{background:#fff;border-radius:var(--radius-lg);padding:28px;width:100%;max-width:480px;box-shadow:var(--shadow-lg);animation:slideIn .25s cubic-bezier(0.22,1,0.36,1)}
+    .modal h3{font-size:18px;font-weight:600;margin-bottom:6px;letter-spacing:-0.01em}
+    .modal p{font-size:13px;color:var(--text-muted);margin-bottom:18px}
+    .field{margin-bottom:14px}
+    .field label{display:block;font-size:12px;font-weight:500;color:var(--text);margin-bottom:6px}
+    .field input{width:100%;padding:9px 12px;border:1px solid var(--border-strong);border-radius:8px;font-size:13px;font-family:'JetBrains Mono',monospace;background:#fff}
+    .field input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+    .field-hint{font-size:11px;color:var(--text-subtle);margin-top:4px}
+    .modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:18px}
+
+    .banner{padding:12px 16px;border-radius:var(--radius);margin-bottom:20px;font-size:13px;display:flex;align-items:flex-start;gap:10px}
+    .banner.warn{background:var(--warning-soft);color:#92400e;border:1px solid #fcd34d}
+    .banner.warn svg{flex:0 0 auto;width:16px;height:16px;margin-top:2px}
+    .banner b{font-weight:600}
+
+    @media (max-width:640px){
+      .hero h1{font-size:24px}
+      .stats{grid-template-columns:1fr}
+      .dropzone{padding:40px 20px}
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+
+    <div class="topbar">
+      <div class="brand">
+        <div class="brand-logo">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 7l9-4 9 4-9 4-9-4z"></path>
+            <path d="M3 12l9 4 9-4"></path>
+            <path d="M3 17l9 4 9-4"></path>
+          </svg>
+        </div>
+        <div>
+          <div class="brand-name">AdminBoeker</div>
+          <div class="brand-tag">AI-boekhouder voor Moneybird</div>
+        </div>
+      </div>
+      <div class="top-right">
+        <div id="health" class="status-pill"><span class="dot"></span><span class="text">Geen API-key ingesteld</span></div>
+        <button class="icon-btn" id="settings-btn" title="Moneybird instellingen">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3"></circle>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <div class="hero">
+      <h1>Sleep een inkoopfactuur, klaar.</h1>
+      <p>De agent leest je factuur, herkent leverancier en regels, en boekt 'm volledig automatisch in Moneybird. Geen knoppen, geen review.</p>
+    </div>
+
+    <div class="banner warn" id="cors-banner" style="display:none">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+      <div>
+        <b>Demo-modus actief.</b> Vanuit een statische HTML kan deze pagina niet rechtstreeks in Moneybird boeken (CORS-beleid). De PDF-extractie werkt wel - je ziet hieronder welke data we uit elke factuur halen. Voor echte boeking gebruik <span class="mono">python app.py</span> of vul rechtsboven je API-key in en probeer alsnog.
+      </div>
+    </div>
+
+    <div class="stats">
+      <div class="stat"><div class="label">Verwerkt deze sessie</div><div id="stat-count" class="value">0</div><div class="delta">facturen</div></div>
+      <div class="stat"><div class="label">Totaal herkend</div><div id="stat-total" class="value">EUR 0,00</div><div class="delta">incl. BTW</div></div>
+      <div class="stat"><div class="label">Gemiddelde extractietijd</div><div id="stat-avg" class="value">-</div><div class="delta">per factuur</div></div>
+    </div>
+
+    <input id="file-input" class="file-input-hidden" type="file" accept="application/pdf" multiple>
+
+    <div id="dropzone" class="dropzone" role="button" tabindex="0">
+      <div class="dropzone-inner">
+        <div class="dropzone-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="17 8 12 3 7 8"></polyline>
+            <line x1="12" y1="3" x2="12" y2="15"></line>
+          </svg>
+        </div>
+        <div class="dropzone-title">Sleep PDF-facturen hierheen</div>
+        <div class="dropzone-sub">of klik om uit te kiezen - meerdere tegelijk mag</div>
+        <button type="button" class="btn btn-primary" id="select-btn">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+          Bestanden selecteren
+        </button>
+        <div class="dropzone-hint">PDF - max 25 MB per bestand</div>
+      </div>
+    </div>
+
+    <div id="feed" class="feed">
+      <div class="feed-empty">Nog geen facturen verwerkt in deze sessie.</div>
+    </div>
+
+    <div class="footer">
+      <div>AdminBoeker - prototype (statisch)</div>
+      <div><span id="admin-info">Geen administratie geconfigureerd</span></div>
+    </div>
+  </div>
+
+  <!-- Settings modal -->
+  <div class="modal-bg" id="settings-modal">
+    <div class="modal" role="dialog" aria-labelledby="modal-title">
+      <h3 id="modal-title">Moneybird verbinding</h3>
+      <p>Vul je API-key en administratie-ID in om écht in Moneybird te boeken. De gegevens worden alleen in deze browsersessie bewaard, niet opgeslagen.</p>
+      <div class="field">
+        <label for="cfg-key">API-key</label>
+        <input id="cfg-key" type="password" placeholder="bv. Yitqhjey2H7s5DU0SJRDCrKtVWOZ6hbBwnDvAzjKg38" autocomplete="off">
+        <div class="field-hint">Aanmaken via Moneybird &gt; Instellingen &gt; API tokens</div>
+      </div>
+      <div class="field">
+        <label for="cfg-admin">Administratie-ID</label>
+        <input id="cfg-admin" type="text" placeholder="bv. 486215254721693560">
+        <div class="field-hint">Te zien in de Moneybird-URL na inloggen</div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-ghost btn-sm" id="cfg-cancel">Annuleren</button>
+        <button class="btn btn-primary btn-sm" id="cfg-save">Opslaan en testen</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+  // pdf.js worker - check of library is geladen
+  if (typeof pdfjsLib === 'undefined') {
+    document.addEventListener('DOMContentLoaded', () => {
+      const banner = document.getElementById('cors-banner');
+      if (banner) {
+        banner.style.display = 'flex';
+        banner.querySelector('div').innerHTML = '<b>PDF-library kon niet laden.</b> Controleer je internetverbinding (de pagina haalt pdf.js van cdnjs.cloudflare.com). Adblockers kunnen dit ook blokkeren - probeer ze tijdelijk uit te schakelen voor deze pagina.';
+      }
+    });
+  } else {
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+  }
+
+  const $ = (s) => document.querySelector(s);
+  const feed = $("#feed");
+  const dropzone = $("#dropzone");
+  const fileInput = $("#file-input");
+  const corsBanner = $("#cors-banner");
+  const stats = { count: 0, total: 0, durations: [] };
+
+  // Session-only config (NOT saved to disk)
+  const config = { apiKey: "", adminId: "" };
+
+  // ---------- helpers ----------
+  function fmtEuro(n){
+    if(n==null) return "-";
+    return "EUR " + Number(n).toLocaleString("nl-NL", {minimumFractionDigits:2, maximumFractionDigits:2});
+  }
+  function fmtSec(ms){
+    if(ms==null) return "-";
+    return (ms/1000).toFixed(1) + "s";
+  }
+  function escapeHtml(s){
+    return String(s == null ? "" : s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));
+  }
+  function clearEmpty(){
+    const e = feed.querySelector(".feed-empty");
+    if(e) e.remove();
+  }
+  function updateStats(){
+    $("#stat-count").textContent = stats.count;
+    $("#stat-total").textContent = fmtEuro(stats.total);
+    if(stats.durations.length){
+      const avg = stats.durations.reduce((a,b)=>a+b,0)/stats.durations.length;
+      $("#stat-avg").textContent = fmtSec(avg);
+    }
+  }
+
+  // ---------- PDF text extraction (pdf.js) ----------
+  async function pdfToText(file){
+    const buf = await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({data: buf}).promise;
+    let text = "";
+    for(let i=1; i<=pdf.numPages; i++){
+      const page = await pdf.getPage(i);
+      const content = await page.getTextContent();
+      // Group items by approximate y-coordinate so we keep line structure
+      const lines = {};
+      for(const it of content.items){
+        const y = Math.round(it.transform[5]);
+        const x = Math.round(it.transform[4]);
+        if(!lines[y]) lines[y] = [];
+        lines[y].push({x, str: it.str});
+      }
+      const sortedYs = Object.keys(lines).map(Number).sort((a,b)=>b-a);
+      for(const y of sortedYs){
+        const lineItems = lines[y].sort((a,b)=>a.x-b.x);
+        text += lineItems.map(i=>i.str).join(" ") + "\n";
+      }
+    }
+    return text;
+  }
+
+  // ---------- Field parser (port of pdf_parser.py) ----------
+  function cleanAmount(s){
+    if(!s) return 0;
+    s = String(s).replace(/€|EUR/g, "").trim();
+    const m = s.match(/[\d.,]+/);
+    if(!m) return 0;
+    let n = m[0];
+    if(n.includes(",") && /,\d{2}$/.test(n)){
+      n = n.replace(/\./g, "").replace(",", ".");
+    } else if(n.includes(".") && n.includes(",")){
+      n = n.replace(/,/g, "");
+    } else if(n.includes(",") && !n.includes(".")){
+      n = n.replace(",", ".");
+    }
+    return parseFloat(n) || 0;
+  }
+  function parseDate(s){
+    if(!s) return null;
+    s = s.trim();
+    // YYYY-MM-DD
+    let m = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if(m) return s;
+    // DD-MM-YYYY or DD/MM/YYYY
+    m = s.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})$/);
+    if(m) return `${m[3]}-${m[2].padStart(2,"0")}-${m[1].padStart(2,"0")}`;
+    // "Dec 18, 2025" / "December 18, 2025"
+    const months = {jan:1,feb:2,mar:3,apr:4,may:5,jun:6,jul:7,aug:8,sep:9,oct:10,nov:11,dec:12,
+                    january:1,february:2,march:3,april:4,june:6,july:7,august:8,september:9,october:10,november:11,december:12,
+                    mei:5,maa:3,maart:3,okt:10};
+    m = s.match(/^([A-Za-z]+)\s+(\d{1,2}),?\s+(\d{4})$/);
+    if(m){
+      const mon = months[m[1].toLowerCase().slice(0,3)] || months[m[1].toLowerCase()];
+      if(mon) return `${m[3]}-${String(mon).padStart(2,"0")}-${m[2].padStart(2,"0")}`;
+    }
+    // "18 Dec 2025"
+    m = s.match(/^(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})$/);
+    if(m){
+      const mon = months[m[2].toLowerCase().slice(0,3)] || months[m[2].toLowerCase()];
+      if(mon) return `${m[3]}-${String(mon).padStart(2,"0")}-${m[1].padStart(2,"0")}`;
+    }
+    return null;
+  }
+
+  function parseInvoice(text){
+    const out = { _raw: text, valuta: "EUR", prijzen_incl_btw: false, leverancier: {}, regels: [] };
+
+    // Factuurnummer
+    let m = text.match(/(?:Factuurnummer|Invoice\s*#?|Invoice\s*No\.?|#)\s*[:#]?\s*([A-Z0-9\-/]+)/i);
+    if(m) out.factuurnummer = m[1].trim();
+    else {
+      m = text.match(/#\s*([A-Z0-9\-/]+)/);
+      if(m) out.factuurnummer = m[1].trim();
+    }
+
+    // Data
+    const dateRe = /(\d{4}-\d{2}-\d{2}|\d{1,2}[-/]\d{1,2}[-/]\d{4}|[A-Za-z]+\s+\d{1,2},?\s+\d{4}|\d{1,2}\s+[A-Za-z]+\s+\d{4})/;
+    m = text.match(new RegExp("(?:Factuurdatum|Invoice\\s*Date|Date)\\s*[:]\\s*" + dateRe.source, "i"));
+    if(m){ const d = parseDate(m[1]); if(d) out.datum = d; }
+    m = text.match(new RegExp("(?:Vervaldatum|Due\\s*Date)\\s*[:]\\s*" + dateRe.source, "i"));
+    if(m){ const d = parseDate(m[1]); if(d) out.vervaldatum = d; }
+
+    // Leverancier - eerste niet-lege regel = bedrijfsnaam
+    const lines = text.split("\n").map(l=>l.trim()).filter(l=>l.length);
+    if(lines.length){
+      out.leverancier.company_name = lines[0];
+      // adres-block: regels 1 t/m 7 voor we KvK/BTW/IBAN/FACTUUR tegenkomen
+      for(let i=1; i<Math.min(8, lines.length); i++){
+        const ln = lines[i];
+        if(/^(FACTUUR|INVOICE)\b/i.test(ln)) break;
+        if(/KvK|CoC/i.test(ln) || /BTW|VAT/i.test(ln) || /IBAN/i.test(ln)) continue;
+        // postcode + plaats NL
+        let mm = ln.match(/^(\d{4}\s*[A-Z]{2})\s+([A-Za-z.\-' ]+?)$/);
+        if(mm){ out.leverancier.zipcode = mm[1].trim(); out.leverancier.city = mm[2].trim(); continue; }
+        // internationaal
+        mm = ln.match(/^([0-9A-Z\-]{3,10})\s+([A-Za-z.\-' ]+?)$/);
+        if(mm && out.leverancier.address1 && !out.leverancier.city){
+          out.leverancier.zipcode = mm[1].trim(); out.leverancier.city = mm[2].trim(); continue;
+        }
+        // land
+        if(/^(NL|BE|DE|FR|US|UK|GB|ES|IT|LU)$/.test(ln)){ out.leverancier.country = ln; continue; }
+        // adres
+        if(!out.leverancier.address1) out.leverancier.address1 = ln;
+      }
+    }
+    m = text.match(/(?:KvK|CoC|kvk)[\s:]*(\d{8})/i);
+    if(m) out.leverancier.chamber_of_commerce = m[1];
+    m = text.match(/(?:BTW|VAT|tax)[\s:]*([A-Z]{2}[A-Z0-9.\-]{8,15})/i);
+    if(m) out.leverancier.tax_number = m[1];
+    m = text.match(/IBAN[\s:]*([A-Z]{2}\d{2}[A-Z0-9]{4}\d{7,16})/i);
+    if(m) out.leverancier.iban = m[1].toUpperCase().replace(/\s/g,"");
+    if(!out.leverancier.country) out.leverancier.country = "NL";
+
+    // BTW verlegd
+    if(/BTW\s*verlegd|VAT\s*reverse\s*charged/i.test(text)){
+      out.btw_verlegd = true;
+    }
+
+    // Regels parsen (header tot subtotaal)
+    let start=-1, end=lines.length;
+    for(let i=0; i<lines.length; i++){
+      if(/\b(Omschrijving|Description)\b.*\b(Aantal|Qty|Quantity)\b/i.test(lines[i])){ start=i+1; break; }
+    }
+    if(start>0){
+      for(let i=start; i<lines.length; i++){
+        if(/\b(Subtotaal|Subtotal)\b/i.test(lines[i])){ end=i; break; }
+      }
+      const rowRe = /^(.+?)\s+(\d+(?:[.,]\d+)?)\s+€?\s*([\d.,]+)\s+€?\s*([\d.,]+)\s*$/;
+      for(let i=start; i<end; i++){
+        const ln = lines[i].trim();
+        const mm = ln.match(rowRe);
+        if(mm){
+          out.regels.push({
+            omschrijving: mm[1].trim(),
+            aantal: parseInt(cleanAmount(mm[2])) || 1,
+            prijs_per_stuk: cleanAmount(mm[3]),
+            btw_percentage: null,
+          });
+        }
+      }
+    }
+
+    // Totalen
+    m = text.match(/(?:Subtotaal|Subtotal)\s*[:]?\s*€?\s*([\d.,]+)/i);
+    if(m) out.totaal_excl_btw = cleanAmount(m[1]);
+    const tots = [...text.matchAll(/(?:Totaal|Total)\s*[:]?\s*€?\s*([\d.,]+)/gi)];
+    if(tots.length) out.totaal_incl_btw = cleanAmount(tots[tots.length-1][1]);
+    m = text.match(/(?:BTW|VAT)\s*\((\d+)%\)\s*€?\s*([\d.,]+)/i);
+    if(m){
+      out.btw_bedrag = cleanAmount(m[2]);
+      const pct = parseInt(m[1]);
+      for(const r of out.regels) if(r.btw_percentage==null) r.btw_percentage = pct;
+    }
+
+    // Fallback: synthetiseer 1 regel als er niets gevonden is
+    if(!out.regels.length){
+      let excl = out.totaal_excl_btw;
+      const incl = out.totaal_incl_btw;
+      const btw = out.btw_bedrag;
+      if(excl==null && incl!=null && btw!=null) excl = Math.round((incl-btw)*100)/100;
+      else if(excl==null && incl!=null) excl = incl;
+      let pct = null;
+      if(out.btw_verlegd) pct = 0;
+      else if(btw && excl){
+        const ratio = btw/excl*100;
+        for(const std of [21,9,6,0]) if(Math.abs(ratio-std)<1) { pct=std; break; }
+      }
+      if(excl && excl>0){
+        out.regels.push({
+          omschrijving: `Factuur ${out.factuurnummer||""}`.trim() || "Inkoopfactuur",
+          aantal:1, prijs_per_stuk: excl, btw_percentage: pct!=null?pct:21
+        });
+        out._synthesized = true;
+      }
+    }
+
+    return out;
+  }
+
+  // ---------- UI cards ----------
+  function busyCard(filename){
+    clearEmpty();
+    const id = "c" + Date.now() + Math.random().toString(36).slice(2,6);
+    const el = document.createElement("div");
+    el.className = "card"; el.id = id;
+    el.innerHTML = `<div class="card-row"><div class="card-icon busy"><div class="spinner"></div></div><div class="card-body"><div class="card-title">${escapeHtml(filename)}</div><div class="card-sub">PDF lezen + analyseren...</div></div></div>`;
+    feed.prepend(el);
+    return id;
+  }
+  function metaHtml(parsed){
+    const lev = parsed.leverancier || {};
+    return `<div class="card-meta">
+      <div class="item"><div class="label">Leverancier</div><div class="value">${escapeHtml(lev.company_name||"-")}</div></div>
+      <div class="item"><div class="label">Factuurnr</div><div class="value mono">${escapeHtml(parsed.factuurnummer||"-")}</div></div>
+      <div class="item"><div class="label">Datum</div><div class="value mono">${escapeHtml(parsed.datum||"-")}</div></div>
+      <div class="item"><div class="label">Vervaldatum</div><div class="value mono">${escapeHtml(parsed.vervaldatum||"-")}</div></div>
+      <div class="item"><div class="label">Totaal</div><div class="value">${fmtEuro(parsed.totaal_incl_btw)}</div></div>
+      <div class="item"><div class="label">Regels</div><div class="value">${(parsed.regels||[]).length}${parsed._synthesized?" (afgeleid)":""}</div></div>
+    </div>`;
+  }
+  function extractCard(id, filename, parsed, durMs, status){
+    const el = document.getElementById(id); if(!el) return;
+    let iconCls="ok", iconSvg='<polyline points="20 6 9 17 4 12"></polyline>', sub="Geextraheerd";
+    if(status==="warn"){ iconCls="warn"; sub="Geextraheerd, maar niet alle velden gevonden"; iconSvg='<path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line>'; }
+    if(status==="booked"){ iconCls="ok"; sub="Geboekt in Moneybird"; }
+    el.innerHTML = `<div class="card-row"><div class="card-icon ${iconCls}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">${iconSvg}</svg></div><div class="card-body"><div class="card-title">${escapeHtml(filename)}</div><div class="card-sub">${sub} - ${fmtSec(durMs)}</div></div></div>` + metaHtml(parsed);
+  }
+  function errorCard(id, filename, message, parsed){
+    const el = document.getElementById(id); if(!el) return;
+    let detail = parsed ? metaHtml(parsed) : "";
+    el.innerHTML = `<div class="card-row"><div class="card-icon error"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg></div><div class="card-body"><div class="card-title">${escapeHtml(filename)}</div><div class="card-sub" style="color:var(--error)">Niet gelukt: ${escapeHtml(message)}</div></div></div>` + detail;
+  }
+  function bookedCard(id, filename, parsed, mbResp, durMs){
+    const el = document.getElementById(id); if(!el) return;
+    el.innerHTML = `<div class="card-row"><div class="card-icon ok"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg></div><div class="card-body"><div class="card-title">${escapeHtml(filename)}</div><div class="card-sub">Geboekt in Moneybird - ${fmtSec(durMs)}</div></div></div>` + metaHtml(parsed) +
+      (mbResp && mbResp.id ? `<a class="card-link" href="https://moneybird.com/${config.adminId}/documents/${mbResp.id}" target="_blank" rel="noreferrer">Bekijk in Moneybird</a>` : "");
+  }
+
+  // ---------- Moneybird call (best-effort, may CORS-fail) ----------
+  async function findOrCreateContact(parsed){
+    const lev = parsed.leverancier || {};
+    const naam = lev.company_name || "";
+    if(!naam) throw new Error("Geen leveranciersnaam gevonden");
+    // search
+    const url = `https://moneybird.com/api/v2/${config.adminId}/contacts.json?query=${encodeURIComponent(naam)}`;
+    let r = await fetch(url, {headers:{"Authorization":"Bearer "+config.apiKey,"Accept":"application/json"}});
+    if(!r.ok) throw new Error(`Moneybird ${r.status} bij contacts: ${await r.text()}`);
+    const found = await r.json();
+    if(found.length) return found[0];
+    // create
+    const body = {contact:{
+      company_name: lev.company_name, address1: lev.address1, zipcode: lev.zipcode, city: lev.city,
+      country: lev.country || "NL", tax_number: lev.tax_number, chamber_of_commerce: lev.chamber_of_commerce,
+      sepa_iban: lev.iban, sepa_iban_account_name: lev.company_name, supplier: true,
+    }};
+    Object.keys(body.contact).forEach(k => body.contact[k]==null||body.contact[k]==="" ? delete body.contact[k] : 0);
+    r = await fetch(`https://moneybird.com/api/v2/${config.adminId}/contacts.json`, {
+      method:"POST", headers:{"Authorization":"Bearer "+config.apiKey,"Content-Type":"application/json","Accept":"application/json"},
+      body: JSON.stringify(body)
+    });
+    if(!r.ok) throw new Error(`Moneybird ${r.status} bij contact aanmaken: ${await r.text()}`);
+    return await r.json();
+  }
+  async function findTaxRate(percentage){
+    const r = await fetch(`https://moneybird.com/api/v2/${config.adminId}/tax_rates.json`, {
+      headers:{"Authorization":"Bearer "+config.apiKey,"Accept":"application/json"}
+    });
+    if(!r.ok) throw new Error(`Moneybird ${r.status} bij tax_rates`);
+    const all = (await r.json()).filter(t=>t.tax_rate_type==="purchase_invoice" && t.active);
+    // exact match
+    for(const t of all){
+      const p = t.percentage; if(percentage===null && p==null) return t;
+      if(p!=null && parseFloat(p)===parseFloat(percentage)) return t;
+    }
+    // fallback vrijgesteld
+    for(const t of all){ if(t.percentage==null) return t; }
+    if(all.length) return all[0];
+    throw new Error("Geen tax_rate gevonden");
+  }
+  async function pickLedger(){
+    const r = await fetch(`https://moneybird.com/api/v2/${config.adminId}/ledger_accounts.json`, {
+      headers:{"Authorization":"Bearer "+config.apiKey,"Accept":"application/json"}
+    });
+    if(!r.ok) throw new Error(`Moneybird ${r.status} bij ledger_accounts`);
+    const all = (await r.json()).filter(a => (a.allowed_document_types||[]).includes("purchase_invoice") && a.active);
+    return all.find(a=>a.name.toLowerCase()==="algemene kosten") || all[0];
+  }
+  async function bookInMoneybird(parsed){
+    const contact = await findOrCreateContact(parsed);
+    const ledger = await pickLedger();
+    const details = [];
+    let pricesIncl = false;
+    for(const r of (parsed.regels||[])){
+      let pct = r.btw_percentage;
+      const tax = await findTaxRate(pct);
+      const fellBack = (pct!=null && pct!==0 && tax.percentage==null);
+      let prijs = parseFloat(r.prijs_per_stuk);
+      if(fellBack){ prijs = prijs * (1 + (pct||0)/100); pricesIncl = true; }
+      details.push({
+        description: r.omschrijving,
+        amount: `${r.aantal||1} x`,
+        price: prijs.toFixed(2),
+        tax_rate_id: tax.id,
+        ledger_account_id: ledger.id,
+      });
+    }
+    const body = {purchase_invoice:{
+      contact_id: contact.id, reference: parsed.factuurnummer, date: parsed.datum,
+      due_date: parsed.vervaldatum, currency:"EUR", prices_are_incl_tax: pricesIncl,
+      details_attributes: details,
+    }};
+    const r = await fetch(`https://moneybird.com/api/v2/${config.adminId}/documents/purchase_invoices.json`,{
+      method:"POST", headers:{"Authorization":"Bearer "+config.apiKey,"Content-Type":"application/json","Accept":"application/json"},
+      body: JSON.stringify(body)
+    });
+    if(!r.ok) throw new Error(`Moneybird ${r.status}: ${await r.text()}`);
+    return await r.json();
+  }
+
+  // ---------- Process file ----------
+  async function processFile(file){
+    if(!file || !file.name.toLowerCase().endsWith(".pdf")) return;
+    const cardId = busyCard(file.name);
+    const start = performance.now();
+    try{
+      const text = await pdfToText(file);
+      const parsed = parseInvoice(text);
+      const durExtract = performance.now() - start;
+      stats.count++;
+      if(parsed.totaal_incl_btw) stats.total += parsed.totaal_incl_btw;
+      stats.durations.push(durExtract);
+      updateStats();
+
+      const hasMinFields = parsed.factuurnummer && parsed.datum && parsed.regels.length;
+      const status = hasMinFields ? "ok" : "warn";
+
+      // Probeer te boeken als API-key is ingesteld
+      if(config.apiKey && config.adminId && hasMinFields){
+        try{
+          const mbResp = await bookInMoneybird(parsed);
+          bookedCard(cardId, file.name, parsed, mbResp, performance.now()-start);
+          return;
+        }catch(e){
+          // CORS of andere fout - val terug op extract-only
+          extractCard(cardId, file.name, parsed, durExtract, status);
+          // Voeg fout toe als notitie
+          const card = document.getElementById(cardId);
+          const note = document.createElement("div");
+          note.style.cssText = "margin-top:10px;padding:10px 12px;background:var(--error-soft);color:var(--error);border-radius:8px;font-size:12px";
+          note.textContent = "Boeking mislukt: " + e.message;
+          card.appendChild(note);
+          // Toon de banner als CORS waarschijnlijk de boosdoener is
+          if(/CORS|Failed to fetch|Network/i.test(e.message)) corsBanner.style.display = "flex";
+          return;
+        }
+      }
+      extractCard(cardId, file.name, parsed, durExtract, status);
+    }catch(e){
+      errorCard(cardId, file.name, e.message);
+    }
+  }
+
+  async function processFiles(fileList){
+    dropzone.classList.add("is-busy");
+    for(const f of fileList) await processFile(f);
+    dropzone.classList.remove("is-busy");
+    fileInput.value = "";
+  }
+
+  // ---------- Drag & drop + keyboard ----------
+  function openPicker(e){ if(e) e.stopPropagation(); fileInput.click(); }
+  ["dragenter","dragover"].forEach(ev => dropzone.addEventListener(ev, e=>{e.preventDefault();dropzone.classList.add("is-drag");}));
+  ["dragleave","drop"].forEach(ev => dropzone.addEventListener(ev, e=>{e.preventDefault();dropzone.classList.remove("is-drag");}));
+  dropzone.addEventListener("drop", e=>{
+    const files = [].slice.call(e.dataTransfer?e.dataTransfer.files:[]).filter(f=>f.name.toLowerCase().endsWith(".pdf"));
+    if(files.length) processFiles(files);
+  });
+  dropzone.addEventListener("click", openPicker);
+  dropzone.addEventListener("keydown", e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); fileInput.click(); }});
+  $("#select-btn").addEventListener("click", openPicker);
+  fileInput.addEventListener("change", e=>{
+    const files = [].slice.call(e.target.files);
+    if(files.length) processFiles(files);
+  });
+  window.addEventListener("dragover", e=>e.preventDefault());
+  window.addEventListener("drop", e=>e.preventDefault());
+
+  // ---------- Settings modal ----------
+  const modalBg = $("#settings-modal");
+  $("#settings-btn").addEventListener("click", ()=>{
+    $("#cfg-key").value = config.apiKey;
+    $("#cfg-admin").value = config.adminId;
+    modalBg.classList.add("is-open");
+  });
+  $("#cfg-cancel").addEventListener("click", ()=>modalBg.classList.remove("is-open"));
+  modalBg.addEventListener("click", e=>{ if(e.target===modalBg) modalBg.classList.remove("is-open"); });
+  $("#cfg-save").addEventListener("click", async ()=>{
+    config.apiKey = $("#cfg-key").value.trim();
+    config.adminId = $("#cfg-admin").value.trim();
+    modalBg.classList.remove("is-open");
+    await checkConnection();
+  });
+
+  async function checkConnection(){
+    const pill = $("#health");
+    pill.classList.remove("ok","error","warn");
+    if(!config.apiKey || !config.adminId){
+      pill.querySelector(".text").textContent = "Demo-modus (geen API)";
+      pill.classList.add("warn");
+      $("#admin-info").textContent = "Geen administratie geconfigureerd";
+      corsBanner.style.display = "flex";
+      return;
+    }
+    pill.querySelector(".text").textContent = "Verbinding testen...";
+    try{
+      const r = await fetch(`https://moneybird.com/api/v2/${config.adminId}/ledger_accounts.json`,{
+        headers:{"Authorization":"Bearer "+config.apiKey,"Accept":"application/json"}
+      });
+      if(!r.ok) throw new Error("HTTP " + r.status);
+      pill.classList.add("ok");
+      pill.querySelector(".text").textContent = "Verbonden met Moneybird";
+      $("#admin-info").textContent = "Administratie: " + config.adminId;
+      corsBanner.style.display = "none";
+    }catch(e){
+      pill.classList.add("error");
+      pill.querySelector(".text").textContent = "Verbinden mislukt (CORS?)";
+      $("#admin-info").textContent = "Browser blokkeert directe API-call";
+      corsBanner.style.display = "flex";
+    }
+  }
+  checkConnection();
+  </script>
+</body>
+</html>

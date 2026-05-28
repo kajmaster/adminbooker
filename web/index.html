@@ -1,0 +1,1033 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AdminBooker — AI-boekhouder voor Moneybird, Exact Online en meer</title>
+  <meta name="description" content="Sleep een PDF-factuur op AdminBooker en hij wordt volledig automatisch geboekt in Moneybird of Exact Online — leverancier herkend, regels en BTW gesplitst, PDF als bijlage.">
+  <meta property="og:title" content="AdminBooker — AI-boekhouder voor Moneybird, Exact Online en meer">
+  <meta property="og:description" content="Sleep een PDF, je inkoopfactuur staat geboekt in jouw administratiepakket. Geen knoppen, geen review.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://adminbooker.com/">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%230f172a' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 7l9-4 9 4-9 4-9-4z'/%3E%3Cpath d='M3 12l9 4 9-4'/%3E%3Cpath d='M3 17l9 4 9-4'/%3E%3C/svg%3E">
+  <!-- pdf.js voor browser-side PDF parsing -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script>
+    if (window.pdfjsLib) {
+      pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+    }
+  </script>
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    :root{
+      --bg:#fafafa; --bg-elev:#ffffff; --bg-soft:#f4f4f5;
+      --border:#e4e4e7; --border-strong:#d4d4d8;
+      --text:#09090b; --text-muted:#52525b; --text-subtle:#71717a;
+      --primary:#0f172a; --primary-hover:#1e293b;
+      --accent:#2563eb; --accent-soft:#dbeafe;
+      --success:#16a34a; --success-soft:#dcfce7;
+      --error:#dc2626; --error-soft:#fee2e2;
+      --warning:#d97706; --warning-soft:#fef3c7;
+      --shadow-sm:0 1px 2px 0 rgb(0 0 0 / 0.05);
+      --shadow:0 1px 3px 0 rgb(0 0 0 / 0.07), 0 1px 2px -1px rgb(0 0 0 / 0.05);
+      --shadow-md:0 4px 6px -1px rgb(0 0 0 / 0.08), 0 2px 4px -2px rgb(0 0 0 / 0.05);
+      --shadow-lg:0 10px 15px -3px rgb(0 0 0 / 0.08), 0 4px 6px -4px rgb(0 0 0 / 0.05);
+      --radius:10px; --radius-lg:16px;
+    }
+    html,body{height:100%}
+    body{
+      font-family:'Inter',system-ui,-apple-system,sans-serif;
+      background:var(--bg); color:var(--text); line-height:1.55;
+      -webkit-font-smoothing:antialiased;
+    }
+    .mono{font-family:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,monospace}
+    a{color:inherit}
+
+    /* ---------- layout ---------- */
+    .container{max-width:1120px;margin:0 auto;padding:0 24px}
+    .section{padding:64px 0}
+    .section-tight{padding:40px 0}
+
+    /* ---------- nav ---------- */
+    .nav{position:sticky;top:0;z-index:50;background:rgba(250,250,250,.85);backdrop-filter:saturate(180%) blur(10px);border-bottom:1px solid var(--border)}
+    .nav-inner{display:flex;align-items:center;justify-content:space-between;height:64px}
+    .brand{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--text)}
+    .brand-logo{width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,#0f172a 0%,#334155 100%);display:flex;align-items:center;justify-content:center;box-shadow:var(--shadow-md)}
+    .brand-logo svg{width:16px;height:16px;color:#fff}
+    .brand-name{font-weight:700;font-size:16px;letter-spacing:-0.01em}
+    .nav-links{display:flex;align-items:center;gap:24px}
+    .nav-links a{color:var(--text-muted);text-decoration:none;font-size:14px;font-weight:500}
+    .nav-links a:hover{color:var(--text)}
+    .nav-cta{display:inline-flex;align-items:center;gap:6px;background:var(--primary);color:#fff !important;padding:8px 14px;border-radius:8px;font-size:13px;font-weight:500;text-decoration:none;box-shadow:var(--shadow)}
+    .nav-cta:hover{background:var(--primary-hover)}
+    @media(max-width:720px){
+      .nav-links a:not(.nav-cta){display:none}
+    }
+
+    /* ---------- hero ---------- */
+    .hero{padding:80px 0 48px;text-align:center}
+    .eyebrow{display:inline-flex;align-items:center;gap:8px;padding:6px 14px;border-radius:999px;background:var(--accent-soft);color:var(--accent);font-size:12px;font-weight:600;letter-spacing:0.02em;text-transform:uppercase;margin-bottom:20px}
+    .eyebrow .dot{width:6px;height:6px;border-radius:50%;background:var(--accent)}
+    .hero h1{font-size:56px;line-height:1.05;letter-spacing:-0.035em;font-weight:800;margin-bottom:18px;max-width:880px;margin-left:auto;margin-right:auto}
+    .hero h1 .grad{background:linear-gradient(135deg,#0f172a 0%,#2563eb 100%);-webkit-background-clip:text;background-clip:text;color:transparent}
+    .hero p.lead{font-size:18px;color:var(--text-muted);max-width:640px;margin:0 auto 28px;line-height:1.6}
+    .hero-cta{display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap}
+
+    .btn{display:inline-flex;align-items:center;gap:8px;font-family:inherit;font-size:14px;font-weight:500;padding:11px 18px;border-radius:9px;cursor:pointer;border:0;transition:all .15s;text-decoration:none}
+    .btn-primary{background:var(--primary);color:#fff;box-shadow:var(--shadow)}
+    .btn-primary:hover{background:var(--primary-hover);transform:translateY(-1px);box-shadow:var(--shadow-md)}
+    .btn-ghost{background:var(--bg-elev);color:var(--text);border:1px solid var(--border)}
+    .btn-ghost:hover{background:var(--bg-soft)}
+    .btn-lg{padding:13px 22px;font-size:15px}
+
+    @media(max-width:720px){
+      .hero{padding:48px 0 32px}
+      .hero h1{font-size:36px}
+      .hero p.lead{font-size:16px}
+    }
+
+    /* ---------- proof strip ---------- */
+    .proof{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;max-width:760px;margin:40px auto 0}
+    .proof-item{background:var(--bg-elev);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px;text-align:left}
+    .proof-item .num{font-size:24px;font-weight:700;letter-spacing:-0.02em}
+    .proof-item .lbl{font-size:13px;color:var(--text-muted);margin-top:2px}
+    @media(max-width:720px){.proof{grid-template-columns:1fr}}
+
+    /* ---------- werkt-met strip ---------- */
+    .platforms-strip{margin-top:48px;padding-top:36px;border-top:1px solid var(--border);text-align:center}
+    .platforms-strip .label{font-size:11px;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-subtle);font-weight:600;margin-bottom:18px}
+    .platforms-list{display:flex;justify-content:center;gap:10px;flex-wrap:wrap}
+    .platform-pill{display:inline-flex;align-items:center;gap:9px;padding:10px 18px;border-radius:999px;background:var(--bg-elev);border:1px solid var(--border);font-size:14px;font-weight:500;color:var(--text);box-shadow:var(--shadow-sm)}
+    .platform-pill .pdot{width:7px;height:7px;border-radius:50%;background:var(--success);box-shadow:0 0 0 3px var(--success-soft)}
+    .platform-pill.soon{color:var(--text-subtle);background:var(--bg-soft);box-shadow:none}
+    .platform-pill.soon .pdot{background:var(--text-subtle);box-shadow:none}
+    .platform-pill.soon::after{content:"binnenkort";font-size:10px;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-subtle);font-weight:600;margin-left:4px;padding:2px 6px;background:var(--bg-elev);border-radius:4px}
+
+    /* ---------- platform-keuze (demo + signup) ---------- */
+    .platform-toggle{display:inline-flex;flex-wrap:wrap;gap:0;padding:3px;background:var(--bg-soft);border:1px solid var(--border);border-radius:999px;margin-bottom:16px}
+    .platform-toggle button{padding:7px 14px;border-radius:999px;border:0;background:transparent;font-family:inherit;font-size:13px;font-weight:500;color:var(--text-muted);cursor:pointer;transition:all .15s;white-space:nowrap}
+    .platform-toggle button:hover:not(:disabled){color:var(--text)}
+    .platform-toggle button.active{background:#fff;color:var(--text);box-shadow:var(--shadow-sm)}
+    .platform-toggle button:disabled{cursor:not-allowed;opacity:.5}
+
+    .signup-form select{padding:12px 14px;border-radius:9px;border:0;font-family:inherit;font-size:14px;background:#fff;color:var(--text);cursor:pointer;min-width:170px}
+    .signup-form select:focus{outline:2px solid var(--accent);outline-offset:2px}
+
+    /* ---------- demo ---------- */
+    #demo{scroll-margin-top:80px}
+    .demo-frame{background:var(--bg-elev);border:1px solid var(--border);border-radius:var(--radius-lg);padding:28px;box-shadow:var(--shadow-lg)}
+    .demo-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px}
+    .demo-title{font-size:20px;font-weight:700;letter-spacing:-0.015em}
+    .demo-sub{font-size:14px;color:var(--text-muted);margin-top:2px}
+    .status-pill{display:inline-flex;align-items:center;gap:8px;padding:6px 12px;border-radius:999px;background:var(--bg-soft);border:1px solid var(--border);font-size:13px;color:var(--text-muted);font-weight:500}
+    .status-pill .dot{width:8px;height:8px;border-radius:50%;background:var(--text-subtle)}
+    .status-pill.ok .dot{background:var(--success);box-shadow:0 0 0 3px var(--success-soft)}
+    .status-pill.error .dot{background:var(--error)}
+    .status-pill.warn .dot{background:var(--warning);box-shadow:0 0 0 3px var(--warning-soft)}
+
+    .dropzone{display:block;width:100%;border:2px dashed var(--border-strong);background:var(--bg-soft);border-radius:var(--radius-lg);padding:56px 32px;text-align:center;cursor:pointer;transition:all .18s;user-select:none}
+    .dropzone:hover{border-color:#94a3b8;background:#fcfcfd}
+    .dropzone.is-drag{border-color:var(--accent);background:var(--accent-soft);box-shadow:var(--shadow-lg)}
+    .dropzone.is-busy{pointer-events:none;opacity:.7}
+    .dropzone-icon{width:56px;height:56px;border-radius:14px;background:linear-gradient(135deg,#f1f5f9 0%,#e2e8f0 100%);display:flex;align-items:center;justify-content:center;color:var(--primary);margin:0 auto 16px}
+    .dropzone-icon svg{width:24px;height:24px}
+    .dropzone-title{font-size:18px;font-weight:600;margin-bottom:6px;letter-spacing:-0.01em}
+    .dropzone-sub{font-size:14px;color:var(--text-muted);margin-bottom:18px;max-width:520px;margin-left:auto;margin-right:auto}
+    .dropzone-hint{font-size:12px;color:var(--text-subtle);margin-top:14px}
+    .file-input-hidden{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
+
+    .feed{margin-top:24px;display:flex;flex-direction:column;gap:12px}
+    .card{background:var(--bg-elev);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px;box-shadow:var(--shadow-sm);animation:slideIn .35s cubic-bezier(0.22,1,0.36,1)}
+    @keyframes slideIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
+    .card-row{display:flex;align-items:center;gap:14px}
+    .card-icon{flex:0 0 auto;width:36px;height:36px;border-radius:9px;display:flex;align-items:center;justify-content:center}
+    .card-icon svg{width:18px;height:18px}
+    .card-icon.ok{background:var(--success-soft);color:var(--success)}
+    .card-icon.error{background:var(--error-soft);color:var(--error)}
+    .card-icon.busy{background:var(--bg-soft);color:var(--text-muted)}
+    .card-body{flex:1;min-width:0}
+    .card-title{font-weight:600;font-size:14px;color:var(--text);margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .card-sub{font-size:13px;color:var(--text-muted)}
+    .card-meta{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:14px;margin-top:14px;padding-top:14px;border-top:1px solid var(--border)}
+    .card-meta .item{display:flex;flex-direction:column;gap:2px}
+    .card-meta .lbl{font-size:11px;text-transform:uppercase;letter-spacing:0.04em;color:var(--text-subtle);font-weight:500}
+    .card-meta .val{font-weight:500;color:var(--text);font-size:14px}
+    .lines{margin-top:14px;padding-top:14px;border-top:1px solid var(--border)}
+    .lines-head{font-size:11px;text-transform:uppercase;letter-spacing:0.04em;color:var(--text-subtle);font-weight:500;margin-bottom:8px}
+    .line{display:grid;grid-template-columns:1fr 60px 100px 70px;gap:12px;padding:6px 0;font-size:13px;align-items:center;border-top:1px solid var(--border)}
+    .line:first-of-type{border-top:0}
+    .line .desc{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .line .num{text-align:right;color:var(--text-muted)}
+    .line .pill{display:inline-block;padding:2px 8px;border-radius:999px;background:var(--bg-soft);color:var(--text-muted);font-size:12px;text-align:center}
+
+    .spinner{width:14px;height:14px;border-radius:50%;border:2px solid var(--border);border-top-color:var(--text-muted);animation:spin .8s linear infinite}
+    @keyframes spin{to{transform:rotate(360deg)}}
+
+    /* ---------- features ---------- */
+    .section h2{font-size:36px;letter-spacing:-0.025em;font-weight:700;text-align:center;margin-bottom:14px}
+    .section .sec-sub{text-align:center;color:var(--text-muted);max-width:600px;margin:0 auto 48px;font-size:16px}
+    .features{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+    @media(max-width:880px){.features{grid-template-columns:1fr}}
+    .feature{background:var(--bg-elev);border:1px solid var(--border);border-radius:var(--radius-lg);padding:28px}
+    .feature-icon{width:40px;height:40px;border-radius:10px;background:var(--accent-soft);color:var(--accent);display:flex;align-items:center;justify-content:center;margin-bottom:18px}
+    .feature-icon svg{width:20px;height:20px}
+    .feature h3{font-size:18px;font-weight:600;letter-spacing:-0.01em;margin-bottom:8px}
+    .feature p{color:var(--text-muted);font-size:14px;line-height:1.6}
+
+    /* ---------- how it works ---------- */
+    .steps{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;position:relative}
+    @media(max-width:880px){.steps{grid-template-columns:1fr}}
+    .step{position:relative;text-align:center;padding:0 12px}
+    .step .num{width:36px;height:36px;border-radius:50%;background:var(--primary);color:#fff;display:inline-flex;align-items:center;justify-content:center;font-weight:600;font-size:14px;margin-bottom:14px}
+    .step h3{font-size:16px;font-weight:600;margin-bottom:6px}
+    .step p{font-size:14px;color:var(--text-muted)}
+
+    /* ---------- signup ---------- */
+    .signup{background:linear-gradient(135deg,#0f172a 0%,#1e293b 100%);color:#fff;border-radius:var(--radius-lg);padding:48px 32px;text-align:center;margin-top:24px;box-shadow:var(--shadow-lg)}
+    .signup h2{color:#fff;margin-bottom:10px;font-size:28px}
+    .signup p{color:#cbd5e1;max-width:520px;margin:0 auto 26px;font-size:15px}
+    .signup-form{display:flex;gap:8px;max-width:480px;margin:0 auto;flex-wrap:wrap;justify-content:center}
+    .signup-form input[type=email]{flex:1;min-width:220px;padding:12px 16px;border-radius:9px;border:0;font-family:inherit;font-size:14px;background:#fff;color:var(--text)}
+    .signup-form input[type=email]:focus{outline:2px solid var(--accent);outline-offset:2px}
+    .signup-form button{background:var(--accent);color:#fff;border:0;padding:12px 22px;border-radius:9px;font-weight:500;font-size:14px;cursor:pointer;font-family:inherit;transition:all .15s}
+    .signup-form button:hover{background:#1d4ed8;transform:translateY(-1px)}
+    .signup-form button:disabled{opacity:.6;cursor:not-allowed}
+    .signup-note{margin-top:14px;font-size:12px;color:#94a3b8}
+    .signup-success{display:none;margin-top:16px;padding:14px 18px;background:rgba(22,163,74,.15);border:1px solid rgba(22,163,74,.4);border-radius:9px;color:#dcfce7;font-size:14px}
+    .signup-success.show{display:block}
+    .signup-error{display:none;margin-top:16px;padding:14px 18px;background:rgba(220,38,38,.15);border:1px solid rgba(220,38,38,.4);border-radius:9px;color:#fecaca;font-size:14px}
+    .signup-error.show{display:block}
+
+    /* ---------- footer ---------- */
+    .footer{border-top:1px solid var(--border);padding:32px 0;color:var(--text-subtle);font-size:13px}
+    .footer-inner{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px}
+    .footer a{color:var(--text-muted);text-decoration:none;margin-left:18px}
+    .footer a:hover{color:var(--text)}
+
+    @media(max-width:640px){
+      .section{padding:48px 0}
+      .section h2{font-size:28px}
+      .demo-frame{padding:20px}
+      .dropzone{padding:40px 18px}
+    }
+  </style>
+</head>
+<body>
+
+  <!-- NAV -->
+  <nav class="nav">
+    <div class="container nav-inner">
+      <a href="#" class="brand">
+        <div class="brand-logo">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 7l9-4 9 4-9 4-9-4z"></path>
+            <path d="M3 12l9 4 9-4"></path>
+            <path d="M3 17l9 4 9-4"></path>
+          </svg>
+        </div>
+        <span class="brand-name">AdminBooker</span>
+      </a>
+      <div class="nav-links">
+        <a href="#demo">Demo</a>
+        <a href="#hoe">Hoe het werkt</a>
+        <a href="#features">Features</a>
+        <a href="#beta" class="nav-cta">Meld je aan</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- HERO -->
+  <header class="hero container">
+    <div class="eyebrow"><span class="dot"></span> Private beta — alpha-versie live</div>
+    <h1>Sleep een PDF, je factuur staat <span class="grad">geboekt in je administratie</span>.</h1>
+    <p class="lead">AdminBooker leest je inkoopfactuur, herkent de leverancier, splitst regels en BTW, en boekt 'm volledig automatisch in <strong>Moneybird</strong> of <strong>Exact Online</strong>. Geen knoppen, geen review.</p>
+    <div class="hero-cta">
+      <a href="#demo" class="btn btn-primary btn-lg">
+        Probeer het zelf
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+      </a>
+      <a href="#beta" class="btn btn-ghost btn-lg">Meld je aan voor beta</a>
+    </div>
+
+    <div class="proof">
+      <div class="proof-item">
+        <div class="num">~6s</div>
+        <div class="lbl">van PDF tot geboekte factuur</div>
+      </div>
+      <div class="proof-item">
+        <div class="num">21% / 9% / 0%</div>
+        <div class="lbl">BTW-splitsing per regel</div>
+      </div>
+      <div class="proof-item">
+        <div class="num">100%</div>
+        <div class="lbl">PDF blijft als bijlage gekoppeld</div>
+      </div>
+    </div>
+
+    <!-- Werkt met-strip — wordt door JS uit window.PLATFORMS gevuld -->
+    <div class="platforms-strip">
+      <div class="label">Werkt met</div>
+      <div id="platforms-list" class="platforms-list"></div>
+    </div>
+  </header>
+
+  <!-- DEMO -->
+  <section id="demo" class="section">
+    <div class="container">
+      <h2>Probeer het met je eigen factuur</h2>
+      <p class="sec-sub">Sleep een PDF en zie wat AdminBooker eruit haalt. In de demo wordt niets daadwerkelijk geboekt — je krijgt alleen de geëxtraheerde data terug, klaar voor je gekozen pakket.</p>
+
+      <div class="demo-frame">
+        <div class="demo-head">
+          <div>
+            <div class="demo-title">Live extractie-demo</div>
+            <div class="demo-sub">Volledig privé: je PDF blijft in je browser en wordt nergens naartoe geüpload.</div>
+          </div>
+          <div id="health" class="status-pill">
+            <span class="dot"></span>
+            <span class="text">Verbinding controleren…</span>
+          </div>
+        </div>
+
+        <!-- Platform-keuze voor de demo (puur cosmetisch — bepaalt wording in resultaat) -->
+        <div style="margin-bottom:6px;font-size:12px;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-subtle);font-weight:600">Doelpakket</div>
+        <div id="platform-toggle" class="platform-toggle" role="tablist" aria-label="Doelpakket"></div>
+
+        <input id="file-input" class="file-input-hidden" type="file" accept="application/pdf,.pdf" multiple>
+
+        <div id="dropzone" class="dropzone" role="button" tabindex="0">
+          <div class="dropzone-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="17 8 12 3 7 8"></polyline>
+              <line x1="12" y1="3" x2="12" y2="15"></line>
+            </svg>
+          </div>
+          <div class="dropzone-title">Sleep een PDF-inkoopfactuur hierheen</div>
+          <div class="dropzone-sub">of klik om uit te kiezen — meerdere tegelijk mag</div>
+          <button type="button" class="btn btn-primary" id="select-btn">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="12" y1="5" x2="12" y2="19"></line>
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+            Bestanden selecteren
+          </button>
+          <div class="dropzone-hint">PDF — max 10 MB per bestand</div>
+        </div>
+
+        <div id="feed" class="feed"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- HOW IT WORKS -->
+  <section id="hoe" class="section" style="background:var(--bg-elev);border-top:1px solid var(--border);border-bottom:1px solid var(--border)">
+    <div class="container">
+      <h2>Hoe het werkt</h2>
+      <p class="sec-sub">Drie stappen — de eerste twee gaan vanzelf, de derde gebeurt in jouw eigen administratie.</p>
+      <div class="steps">
+        <div class="step">
+          <div class="num">1</div>
+          <h3>Sleep PDF</h3>
+          <p>Drop je inkoopfactuur (of meerdere tegelijk) op de drop-zone. Werkt voor klassieke layouts, bonnetjes en ZZP-facturen — in NL en EN.</p>
+        </div>
+        <div class="step">
+          <div class="num">2</div>
+          <h3>Extractie + validatie</h3>
+          <p>De agent leest leverancier, factuurnummer, datum, regels en BTW. Onbekende leveranciers worden automatisch aangemaakt in jouw administratiepakket.</p>
+        </div>
+        <div class="step">
+          <div class="num">3</div>
+          <h3>Geboekt in <span id="how-platform">Moneybird of Exact Online</span></h3>
+          <p>Inkoopfactuur staat klaar — regels en BTW gesplitst, originele PDF als bijlage gekoppeld. Klaar om af te tikken.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FEATURES -->
+  <section id="features" class="section">
+    <div class="container">
+      <h2>Gebouwd voor de dingen die saai zijn</h2>
+      <p class="sec-sub">AdminBooker doet het werk dat je liever niet zelf doet — accuraat, automatisch, zonder dat je iets hoeft te controleren.</p>
+      <div class="features">
+        <div class="feature">
+          <div class="feature-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+          </div>
+          <h3>BTW-splitsing per regel</h3>
+          <p>21% / 9% / 0% / verlegd / vrijgesteld — automatisch herkend en correct gesplitst over factuurregels.</p>
+        </div>
+        <div class="feature">
+          <div class="feature-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+          </div>
+          <h3>Leveranciers automatisch</h3>
+          <p>Nieuwe leveranciers worden direct aangemaakt met KvK, IBAN en adresgegevens uit de factuur. Bestaande worden hergebruikt.</p>
+        </div>
+        <div class="feature">
+          <div class="feature-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+          </div>
+          <h3>PDF blijft als bijlage</h3>
+          <p>Originele PDF wordt automatisch aan de geboekte factuur gehangen — handig voor je accountant en de Belastingdienst.</p>
+        </div>
+        <div class="feature">
+          <div class="feature-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="13" rx="2"></rect><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+          </div>
+          <h3>Bankafschriften</h3>
+          <p>CSV en MT940 worden geïmporteerd en automatisch gematcht tegen openstaande facturen — wat niet matcht laat hij staan.</p>
+        </div>
+        <div class="feature">
+          <div class="feature-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"></path><polyline points="12 5 19 12 12 19"></polyline></svg>
+          </div>
+          <h3>Verkoopfacturen ook</h3>
+          <p>Sleep je verkoopfactuur en hij wordt direct als open factuur in je administratie geboekt — klant aanmaken inclusief.</p>
+        </div>
+        <div class="feature">
+          <div class="feature-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+          </div>
+          <h3>~6 seconden per factuur</h3>
+          <p>Van drop tot geboekt — geen review-stap, geen handmatige knoppen. Wat eerst 5 minuten kostte, is nu een seconde aandacht.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SIGNUP -->
+  <section id="beta" class="section">
+    <div class="container">
+      <div class="signup">
+        <h2>Meld je aan voor de beta</h2>
+        <p>We koppelen AdminBooker stap voor stap aan eerste gebruikers. Laat je e-mail achter en we nemen contact op zodra we ruimte hebben.</p>
+
+        <!-- Netlify Forms: data-netlify="true" laat Netlify de submissions opvangen. -->
+        <form name="beta-signup" method="POST" data-netlify="true" data-netlify-honeypot="bot-field" class="signup-form" id="beta-form">
+          <input type="hidden" name="form-name" value="beta-signup">
+          <p style="display:none"><label>Niet invullen: <input name="bot-field"></label></p>
+          <input type="email" name="email" placeholder="jij@bedrijf.nl" required>
+          <select name="platform" id="beta-platform" required aria-label="Welk pakket gebruik je?">
+            <!-- Statische opties zodat Netlify het veld detecteert. JS kan ze runtime vervangen. -->
+            <option value="" disabled selected>Welk pakket gebruik je?</option>
+            <option value="moneybird">Moneybird</option>
+            <option value="exact">Exact Online</option>
+            <option value="eboekhouden">e-Boekhouden (binnenkort)</option>
+            <option value="snelstart">SnelStart (binnenkort)</option>
+            <option value="anders">Anders / nog niet beslist</option>
+          </select>
+          <button type="submit" id="beta-submit">Aanmelden</button>
+        </form>
+
+        <div class="signup-note">We gebruiken je adres alleen om je over de beta te informeren. Geen marketing, geen doorverkoop.</div>
+        <div id="beta-success" class="signup-success">Bedankt! We mailen je zodra er een plek vrij is.</div>
+        <div id="beta-error" class="signup-error">Er ging iets mis. Probeer het zo opnieuw of stuur een mailtje naar hello@adminbooker.com.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer class="footer">
+    <div class="container footer-inner">
+      <div>&copy; <span id="year"></span> AdminBooker — een project van Kaj</div>
+      <div>
+        <a href="#demo">Demo</a>
+        <a href="#beta">Beta</a>
+        <a href="mailto:hello@adminbooker.com">Contact</a>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    // =========================================================
+    // Demo draait 100% in de browser via pdf.js — geen backend.
+    // =========================================================
+
+    // ---------- Ondersteunde administratiepakketten ----------
+    // Voeg hier een nieuw pakket toe — wordt automatisch overal in de site
+    // gepicked: hero-strip, demo-toggle, signup-keuze, success-card.
+    //   status: "live" = werkt nu, "soon" = wordt voorbereid
+    window.PLATFORMS = [
+      { id: "moneybird",   name: "Moneybird",     status: "live" },
+      { id: "exact",       name: "Exact Online",  status: "live" },
+      { id: "eboekhouden", name: "e-Boekhouden",  status: "soon" },
+      { id: "snelstart",   name: "SnelStart",     status: "soon" },
+    ];
+    let selectedPlatform = "moneybird";
+
+    function platformName(id){
+      const p = window.PLATFORMS.find(x => x.id === id);
+      return p ? p.name : "je administratie";
+    }
+    function livePlatforms(){
+      return window.PLATFORMS.filter(p => p.status === "live");
+    }
+
+    const $ = (s) => document.querySelector(s);
+    const feed = $("#feed");
+    const dropzone = $("#dropzone");
+    const fileInput = $("#file-input");
+
+    document.getElementById("year").textContent = new Date().getFullYear();
+
+    // ---------- platform-strip in hero ----------
+    function renderPlatformsStrip(){
+      const root = document.getElementById("platforms-list");
+      if(!root) return;
+      root.innerHTML = window.PLATFORMS.map(p =>
+        '<div class="platform-pill' + (p.status === "soon" ? " soon" : "") + '">' +
+          '<span class="pdot"></span>' + escapeHtml(p.name) +
+        '</div>'
+      ).join("");
+    }
+
+    // ---------- platform-toggle boven de drop-zone ----------
+    function renderPlatformToggle(){
+      const root = document.getElementById("platform-toggle");
+      if(!root) return;
+      root.innerHTML = window.PLATFORMS.map(p =>
+        '<button type="button" data-id="' + p.id + '"' +
+          (p.id === selectedPlatform ? ' class="active"' : "") +
+          (p.status === "soon" ? ' disabled title="Binnenkort beschikbaar"' : "") +
+          '>' + escapeHtml(p.name) + (p.status === "soon" ? " · binnenkort" : "") + "</button>"
+      ).join("");
+      root.querySelectorAll("button:not([disabled])").forEach(btn => {
+        btn.addEventListener("click", () => {
+          selectedPlatform = btn.dataset.id;
+          renderPlatformToggle();
+          updateHowPlatform();
+        });
+      });
+    }
+    function updateHowPlatform(){
+      const el = document.getElementById("how-platform");
+      if(el) el.textContent = platformName(selectedPlatform);
+    }
+
+    // ---------- platform-keuze in beta-signup ----------
+    function renderBetaSelect(){
+      const sel = document.getElementById("beta-platform");
+      if(!sel) return;
+      const placeholder = '<option value="" disabled selected>Welk pakket gebruik je?</option>';
+      const opts = window.PLATFORMS.map(p =>
+        '<option value="' + p.id + '">' + escapeHtml(p.name) + (p.status === "soon" ? " (binnenkort)" : "") + "</option>"
+      );
+      opts.push('<option value="anders">Anders / nog niet beslist</option>');
+      sel.innerHTML = placeholder + opts.join("");
+    }
+
+    function escapeHtml(s){
+      return String(s == null ? "" : s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));
+    }
+
+    // Initieel renderen (nu helpers bestaan)
+    renderPlatformsStrip();
+    renderPlatformToggle();
+    renderBetaSelect();
+    updateHowPlatform();
+
+    function fmtEuro(n){
+      if(n==null||isNaN(n)) return "—";
+      return "€ " + Number(n).toLocaleString("nl-NL", {minimumFractionDigits:2, maximumFractionDigits:2});
+    }
+    function fmtSec(ms){
+      if(ms==null) return "—";
+      return (ms/1000).toFixed(1) + "s";
+    }
+    // escapeHtml() is hierboven al gedefinieerd voor de platform-renders
+
+    // ---------- demo-status ----------
+    (function showDemoReady(){
+      const pill = $("#health");
+      if(window.pdfjsLib){
+        pill.classList.add("ok");
+        pill.querySelector(".text").textContent = "Demo live · in je browser";
+      } else {
+        pill.classList.add("warn");
+        pill.querySelector(".text").textContent = "pdf.js laden…";
+        // probeer nogmaals na 1.5s
+        setTimeout(showDemoReady, 1500);
+      }
+    })();
+
+    // ---------- card builders ----------
+    function busyCard(filename){
+      const id = "c" + Date.now() + Math.random().toString(36).slice(2,6);
+      const el = document.createElement("div");
+      el.className = "card";
+      el.id = id;
+      el.innerHTML =
+        '<div class="card-row">' +
+          '<div class="card-icon busy"><div class="spinner"></div></div>' +
+          '<div class="card-body">' +
+            '<div class="card-title">' + escapeHtml(filename) + '</div>' +
+            '<div class="card-sub">PDF lezen en factuurgegevens extraheren…</div>' +
+          '</div>' +
+        '</div>';
+      feed.prepend(el);
+      return id;
+    }
+    function successCard(id, filename, data, durationMs){
+      const el = document.getElementById(id);
+      if(!el) return;
+      const lev = (data.leverancier && (data.leverancier.company_name || data.leverancier.firstname || data.leverancier.naam)) || "—";
+      const regels = data.regels || [];
+      let regelsHtml = "";
+      if(regels.length){
+        const rows = regels.map(r =>
+          '<div class="line">' +
+            '<div class="desc" title="' + escapeHtml(r.omschrijving || "") + '">' + escapeHtml(r.omschrijving || "—") + '</div>' +
+            '<div class="num">' + (r.aantal != null ? r.aantal + "×" : "") + '</div>' +
+            '<div class="num">' + fmtEuro(r.prijs_per_stuk) + '</div>' +
+            '<div class="pill">' + (r.btw_percentage != null ? r.btw_percentage + "%" : "—") + '</div>' +
+          '</div>'
+        ).join("");
+        regelsHtml = '<div class="lines"><div class="lines-head">Factuurregels</div>' + rows + '</div>';
+      }
+      const totaal = data.totaal_incl_btw != null
+        ? data.totaal_incl_btw
+        : (regels.reduce((a,r)=>a + Number(r.prijs_per_stuk||0)*Number(r.aantal||1)*(1+Number(r.btw_percentage||0)/100), 0));
+
+      el.innerHTML =
+        '<div class="card-row">' +
+          '<div class="card-icon ok"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg></div>' +
+          '<div class="card-body">' +
+            '<div class="card-title">' + escapeHtml(filename) + '</div>' +
+            '<div class="card-sub">Geëxtraheerd in ' + fmtSec(durationMs) + ' · klaar voor ' + escapeHtml(platformName(selectedPlatform)) + '</div>' +
+          '</div>' +
+        '</div>' +
+        '<div class="card-meta">' +
+          '<div class="item"><div class="lbl">Doelpakket</div><div class="val">' + escapeHtml(platformName(selectedPlatform)) + '</div></div>' +
+          '<div class="item"><div class="lbl">Leverancier</div><div class="val">' + escapeHtml(lev) + '</div></div>' +
+          '<div class="item"><div class="lbl">Factuurnr</div><div class="val mono">' + escapeHtml(data.factuurnummer || "—") + '</div></div>' +
+          '<div class="item"><div class="lbl">Datum</div><div class="val mono">' + escapeHtml(data.datum || "—") + '</div></div>' +
+          '<div class="item"><div class="lbl">Vervaldatum</div><div class="val mono">' + escapeHtml(data.vervaldatum || "—") + '</div></div>' +
+          '<div class="item"><div class="lbl">Totaal</div><div class="val">' + fmtEuro(totaal) + '</div></div>' +
+        '</div>' +
+        regelsHtml;
+    }
+    function errorCard(id, filename, message){
+      const el = document.getElementById(id);
+      if(!el) return;
+      el.innerHTML =
+        '<div class="card-row">' +
+          '<div class="card-icon error"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg></div>' +
+          '<div class="card-body">' +
+            '<div class="card-title">' + escapeHtml(filename) + '</div>' +
+            '<div class="card-sub" style="color:var(--error)">' + escapeHtml(message) + '</div>' +
+          '</div>' +
+        '</div>';
+    }
+
+    // =========================================================
+    // PDF-extractie 100% in de browser — port van pdf_parser.py
+    // =========================================================
+
+    // pdf.js: lees alle tekst uit een PDF File-object.
+    async function pdfToText(file){
+      const buf = await file.arrayBuffer();
+      const pdf = await pdfjsLib.getDocument({data: buf}).promise;
+      let out = "";
+      for(let p = 1; p <= pdf.numPages; p++){
+        const page = await pdf.getPage(p);
+        const tc = await page.getTextContent();
+        // Items groeperen per Y-coördinaat ≈ leesregel
+        const byLine = new Map();
+        for(const item of tc.items){
+          const y = Math.round(item.transform[5]);
+          if(!byLine.has(y)) byLine.set(y, []);
+          byLine.get(y).push({x: item.transform[4], s: item.str});
+        }
+        const ys = [...byLine.keys()].sort((a,b) => b - a); // van boven naar beneden
+        for(const y of ys){
+          const items = byLine.get(y).sort((a,b) => a.x - b.x);
+          const line = items.map(i => i.s).join(" ").replace(/\s+/g, " ").trim();
+          if(line) out += line + "\n";
+        }
+        out += "\n";
+      }
+      return out;
+    }
+
+    // ---------- helpers (port van pdf_parser.py) ----------
+    function cleanAmount(s){
+      if(s == null) return 0;
+      s = String(s).trim().replace(/€|EUR/g, "").trim();
+      const m = s.match(/[\d\.\,]+/);
+      if(!m) return 0;
+      let num = m[0];
+      if(num.split(",").length - 1 === 1 && /,\d{2}$/.test(num)){
+        num = num.replace(/\./g, "").replace(",", ".");
+      } else if(num.split(".").length - 1 === 1 && num.includes(",")){
+        num = num.replace(/,/g, "");
+      } else if(num.split(",").length - 1 === 1 && !num.includes(".")){
+        num = num.replace(",", ".");
+      }
+      const v = parseFloat(num);
+      return isNaN(v) ? 0 : v;
+    }
+
+    const MONTHS = {
+      jan:1,feb:2,mar:3,apr:4,may:5,jun:6,jul:7,aug:8,sep:9,oct:10,nov:11,dec:12,
+      january:1,february:2,march:3,april:4,june:6,july:7,august:8,september:9,october:10,november:11,december:12,
+      januari:1,februari:2,maart:3,mei:5,juni:6,juli:7,augustus:8,oktober:10,
+      mrt:3,okt:10
+    };
+
+    function parseDate(s){
+      if(!s) return null;
+      s = s.trim();
+      let m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+      if(m){
+        const d = new Date(Date.UTC(+m[1], +m[2]-1, +m[3]));
+        return isNaN(d) ? null : d.toISOString().slice(0,10);
+      }
+      m = s.match(/^(\d{1,2})[-\/](\d{1,2})[-\/](\d{4})$/);
+      if(m){
+        const d = new Date(Date.UTC(+m[3], +m[2]-1, +m[1]));
+        return isNaN(d) ? null : d.toISOString().slice(0,10);
+      }
+      m = s.match(/^(\d{1,2})\s+([A-Za-z\.]+)\s+(\d{4})$/);
+      if(m){
+        const key = m[2].toLowerCase().replace(/\.$/,"");
+        const mon = MONTHS[key.slice(0,3)] || MONTHS[key];
+        if(mon){
+          const d = new Date(Date.UTC(+m[3], mon-1, +m[1]));
+          return isNaN(d) ? null : d.toISOString().slice(0,10);
+        }
+      }
+      m = s.match(/^([A-Za-z\.]+)\s+(\d{1,2}),?\s+(\d{4})$/);
+      if(m){
+        const key = m[1].toLowerCase().replace(/\.$/,"");
+        const mon = MONTHS[key.slice(0,3)] || MONTHS[key];
+        if(mon){
+          const d = new Date(Date.UTC(+m[3], mon-1, +m[2]));
+          return isNaN(d) ? null : d.toISOString().slice(0,10);
+        }
+      }
+      return null;
+    }
+
+    const ALL_DATES_RE = /\b(\d{4}-\d{1,2}-\d{1,2}|\d{1,2}[-\/]\d{1,2}[-\/]\d{4}|\d{1,2}\s+[A-Za-z\.]+\s+\d{4}|[A-Za-z\.]+\s+\d{1,2},?\s+\d{4})\b/g;
+    const ALL_AMOUNTS_RE = /(?:€|EUR)?\s*(\d{1,3}(?:[.,]\d{3})*[.,]\d{2})/g;
+    const KVK_RE = /(?:KvK|CoC|KVK|kvk)[\s:.]*?([0-9]{8})/;
+    const BTW_NR_RE = /(?:BTW|VAT|btw|tax)[\s\.:#]*?([A-Z]{2}[A-Z0-9\.\-]{8,15})/i;
+    const IBAN_RE = /IBAN[\s:.]*([A-Z]{2}[0-9]{2}[A-Z0-9]{4}[0-9]{7,16})/i;
+    const INVOICE_NR_PATTERNS = [
+      /(?:Factuurnummer|Invoice\s*number|Invoice\s*No\.?|Invoice\s*#)\s*[:#]?\s*([A-Z0-9][A-Z0-9\-\/_\.]{1,30})/i,
+      /(?:Nr\.?|Nummer|Reference)\s*[:#]?\s*([A-Z0-9][A-Z0-9\-\/_\.]{2,30})/i,
+      /#\s*([A-Z0-9][A-Z0-9\-\/_\.]{2,30})/
+    ];
+    const DATE_LABELED = [
+      [/(?:Factuurdatum|Invoice\s*Date)\s*[:#]?\s*([^\n]+?)(?:\n|$)/i, "datum"],
+      [/\bDate\s*[:#]\s*([^\n]+?)(?:\n|$)/i, "datum"],
+      [/(?:Vervaldatum|Due\s*Date|Payment\s*Due)\s*[:#]?\s*([^\n]+?)(?:\n|$)/i, "vervaldatum"]
+    ];
+    const TOTAAL_PATTERNS = [
+      /(?:Totaal\s*incl|Total\s*incl|Te\s*betalen|Balance\s*Due|Amount\s*Due|Total)\s*[:#]?\s*€?\s*([\d\.\,]+)/gi,
+      /^Totaal\s+€?\s*([\d\.\,]+)\s*$/gim
+    ];
+    const SUBTOTAAL_RE = /(?:Subtotaal|Subtotal|Totaal\s*excl)\s*[:#]?\s*€?\s*([\d\.\,]+)/i;
+    const BTW_LABELED_RE = /(?:BTW|VAT|Tax)\s*\(?(\d{1,2})\s*%\)?\s*[:#]?\s*(?:€|EUR\.?)?\s*([\d\.\,]+)/i;
+    const BTW_META_RE = /\b(?:BTW|VAT)\b\s*[:#]?\s*(\d{1,2})\s*%(?!\s*\))/i;
+    const BTW_VERLEGD_RE = /BTW\s*verlegd|VAT\s*reverse\s*charged|reverse\s*charge/i;
+    const REGEL_HEADER_RE = /\b(Omschrijving|Description|Item|Artikel|Product|Werkzaamheden)\b.*?\b(Aantal|Qty|Quantity|Hoeveelheid|Amount|Bedrag|Total)\b/i;
+    const SUBTOTAL_LINE_RE = /\b(Subtotaal|Subtotal|Totaal|Total|BTW|VAT)\b/i;
+    const SKIP_LINE_RE = /^(FACTUUR|INVOICE|Bill\s*to|Klant|Customer|Date|Datum|Factuurdatum|Factuurnummer|Vervaldatum|Due\s*Date|Aan|To|#|Betreft|Reference|Pagina)\b|^#/i;
+
+    function parseRegels(text){
+      const regels = [];
+      const lines = text.split("\n");
+      let start = null, end = null;
+      for(let i = 0; i < lines.length; i++){
+        if(REGEL_HEADER_RE.test(lines[i])){ start = i + 1; break; }
+      }
+      if(start === null) return regels;
+      for(let i = start; i < lines.length; i++){
+        if(SUBTOTAL_LINE_RE.test(lines[i])){ end = i; break; }
+      }
+      if(end === null) end = lines.length;
+
+      const CUR = "(?:€|EUR|EUR\\.?)?";
+      const r5 = new RegExp("^(.+?)\\s+(\\d+(?:[.,]\\d+)?)\\s+"+CUR+"\\s*([\\d\\.\\,]+)\\s+(\\d+(?:[.,]\\d+)?)\\s*%\\s+"+CUR+"\\s*([\\d\\.\\,]+)\\s*$");
+      const r4 = new RegExp("^(.+?)\\s+(\\d+(?:[.,]\\d+)?)\\s+"+CUR+"\\s*([\\d\\.\\,]+)\\s+"+CUR+"\\s*([\\d\\.\\,]+)\\s*$");
+      const r2 = new RegExp("^(.+?)\\s+"+CUR+"\\s*([\\d\\.\\,]+)\\s*$");
+
+      for(let i = start; i < end; i++){
+        const ln = lines[i].trim();
+        if(!ln) continue;
+        let m = ln.match(r5);
+        if(m){
+          const qty = Math.floor(cleanAmount(m[2])) || 1;
+          const price = cleanAmount(m[3]);
+          const korting = cleanAmount(m[4]);
+          const eff = korting ? price * (1 - korting/100) : price;
+          regels.push({omschrijving: m[1].trim(), aantal: qty, prijs_per_stuk: Math.round(eff*100)/100, btw_percentage: null});
+          continue;
+        }
+        m = ln.match(r4);
+        if(m){
+          regels.push({omschrijving: m[1].trim(), aantal: Math.floor(cleanAmount(m[2])) || 1, prijs_per_stuk: cleanAmount(m[3]), btw_percentage: null});
+          continue;
+        }
+        m = ln.match(r2);
+        if(m){
+          const tot = cleanAmount(m[2]);
+          if(tot > 0) regels.push({omschrijving: m[1].trim(), aantal: 1, prijs_per_stuk: tot, btw_percentage: null});
+        }
+      }
+      return regels;
+    }
+
+    function parseInvoice(text, filename){
+      const out = { valuta: "EUR", prijzen_incl_btw: false, leverancier: {}, regels: [] };
+
+      // Factuurnummer
+      for(const pat of INVOICE_NR_PATTERNS){
+        const m = text.match(pat);
+        if(m){
+          const cand = m[1].trim().replace(/[\.,;:]+$/,"");
+          if(!/^\d{1,3}([.,]\d{2,3})*[.,]\d{2}$/.test(cand)){ out.factuurnummer = cand; break; }
+        }
+      }
+
+      // Datums
+      for(const [pat, key] of DATE_LABELED){
+        const m = text.match(pat);
+        if(m){
+          const d = parseDate(m[1].trim());
+          if(d) out[key] = d;
+        }
+      }
+      if(!out.datum || !out.vervaldatum){
+        const found = [];
+        for(const m of text.matchAll(ALL_DATES_RE)){
+          const d = parseDate(m[1]);
+          if(d && !found.includes(d)) found.push(d);
+        }
+        if(!out.datum && found[0]) out.datum = found[0];
+        if(!out.vervaldatum && found[1]) out.vervaldatum = found[1];
+      }
+
+      // Leverancier
+      const allLines = text.split("\n").map(l => l.trimEnd()).filter(l => l.trim());
+      const lev = out.leverancier;
+      for(const ln of allLines.slice(0, 8)){
+        const s = ln.trim();
+        if(!s || SKIP_LINE_RE.test(s)) continue;
+        if(KVK_RE.test(s) || BTW_NR_RE.test(s) || IBAN_RE.test(s)) continue;
+        if(/^[\d\s\.\,\-\/€:]+$/.test(s)) continue;
+        if(/^\s*\d{4}\s*[A-Z]{2}\s*$/.test(s)) continue;
+        lev.company_name = s.slice(0, 100);
+        break;
+      }
+      for(const ln of allLines.slice(1, 12)){
+        const s = ln.trim();
+        if(SKIP_LINE_RE.test(s)) break;
+        if(KVK_RE.test(s) || BTW_NR_RE.test(s) || IBAN_RE.test(s)) continue;
+        let m = s.match(/^\s*(\d{4}\s*[A-Z]{2})\s+([A-Za-z\.\-' ]+?)\s*$/);
+        if(m){ lev.zipcode = m[1].trim(); lev.city = m[2].trim(); continue; }
+        if(/^(NL|BE|DE|FR|US|UK|GB|ES|IT|LU)$/.test(s)){ lev.country = s; continue; }
+        if(!lev.address1 && s !== lev.company_name) lev.address1 = s;
+      }
+      let m;
+      if((m = text.match(KVK_RE))) lev.chamber_of_commerce = m[1];
+      if((m = text.match(BTW_NR_RE)) && !/^\d{1,2}$/.test(m[1])) lev.tax_number = m[1];
+      if((m = text.match(IBAN_RE))) lev.iban = m[1].toUpperCase().replace(/\s/g, "");
+      if(!lev.country) lev.country = "NL";
+
+      // BTW verlegd
+      if(BTW_VERLEGD_RE.test(text)) out.btw_verlegd = true;
+
+      // Subtotaal
+      if((m = text.match(SUBTOTAAL_RE))) out.totaal_excl_btw = cleanAmount(m[1]);
+
+      // Totaal incl
+      const inclCands = [];
+      for(const pat of TOTAAL_PATTERNS){
+        for(const mm of text.matchAll(pat)){
+          inclCands.push(cleanAmount(mm[1]));
+        }
+      }
+      if(inclCands.length) out.totaal_incl_btw = Math.max(...inclCands);
+
+      // BTW
+      let btwPct = null;
+      if((m = text.match(BTW_LABELED_RE))){
+        out.btw_bedrag = cleanAmount(m[2]);
+        btwPct = parseInt(m[1], 10);
+      } else if((m = text.match(BTW_META_RE))){
+        btwPct = parseInt(m[1], 10);
+      }
+
+      // Fallback totaal: grootste bedrag
+      if(out.totaal_incl_btw == null){
+        const all = [];
+        for(const mm of text.matchAll(ALL_AMOUNTS_RE)){
+          const v = cleanAmount(mm[1]);
+          if(v > 0) all.push(v);
+        }
+        if(all.length) out.totaal_incl_btw = Math.max(...all);
+      }
+
+      // Regels
+      out.regels = parseRegels(text);
+      if(out.regels.length){
+        if(btwPct !== null){
+          for(const r of out.regels) if(r.btw_percentage == null) r.btw_percentage = btwPct;
+        }
+        if(out.btw_verlegd){
+          for(const r of out.regels) r.btw_percentage = 0;
+        }
+      }
+
+      // Synthetische regel uit totaal
+      if(!out.regels.length){
+        let excl = out.totaal_excl_btw;
+        const incl = out.totaal_incl_btw;
+        const btw = out.btw_bedrag;
+        if(excl == null && incl != null && btw != null) excl = Math.round((incl - btw)*100)/100;
+        else if(excl == null && incl != null){
+          if(btwPct) excl = Math.round((incl / (1 + btwPct/100))*100)/100;
+          else excl = incl;
+        }
+        let pct = null;
+        if(out.btw_verlegd) pct = 0;
+        else if(btw != null && excl){
+          const ratio = btw / excl * 100;
+          for(const std of [21, 9, 6, 0]){
+            if(Math.abs(ratio - std) < 1.5){ pct = std; break; }
+          }
+        } else if(btwPct != null) pct = btwPct;
+
+        if(excl && excl > 0){
+          const naam = lev.company_name || `Factuur ${out.factuurnummer || ""}`.trim() || "Inkoopfactuur";
+          out.regels = [{
+            omschrijving: `Inkoop ${naam}`.trim().slice(0, 200),
+            aantal: 1,
+            prijs_per_stuk: excl,
+            btw_percentage: pct != null ? pct : 21
+          }];
+        }
+      }
+
+      // Fallbacks
+      if(!out.factuurnummer){
+        const stem = filename.replace(/\.pdf$/i, "");
+        out.factuurnummer = stem.replace(/[^A-Za-z0-9\-\/_]/g, "-").slice(0, 30);
+      }
+      if(!lev.company_name){
+        const stem = filename.replace(/\.pdf$/i, "");
+        const prefix = stem.split(/[\d_\-]/)[0].trim();
+        lev.company_name = (prefix && prefix.length >= 2 ? prefix : "Onbekende leverancier").slice(0, 100);
+      }
+      if(!out.datum){
+        out.datum = new Date().toISOString().slice(0,10);
+      }
+      return out;
+    }
+
+    // ---------- extractie pipeline ----------
+    async function extractFile(file){
+      if(!file || !file.name.toLowerCase().endsWith(".pdf")) return;
+      if(file.size > 25 * 1024 * 1024){
+        const id = busyCard(file.name);
+        errorCard(id, file.name, "Bestand groter dan 25 MB — kleiner aanleveren a.u.b.");
+        return;
+      }
+      if(!window.pdfjsLib){
+        const id = busyCard(file.name);
+        errorCard(id, file.name, "PDF-parser is nog aan het laden. Probeer het zo opnieuw.");
+        return;
+      }
+      const cardId = busyCard(file.name);
+      const start = performance.now();
+      try{
+        const text = await pdfToText(file);
+        const data = parseInvoice(text, file.name);
+        const dur = performance.now() - start;
+        successCard(cardId, file.name, data, dur);
+      }catch(e){
+        console.error(e);
+        errorCard(cardId, file.name, "Kon PDF niet lezen: " + (e && e.message ? e.message : "onbekende fout"));
+      }
+    }
+
+    async function extractFiles(fileList){
+      dropzone.classList.add("is-busy");
+      for(const f of fileList){
+        await extractFile(f);
+      }
+      dropzone.classList.remove("is-busy");
+      fileInput.value = "";
+    }
+
+    // ---------- drop / pick ----------
+    function openPicker(e){ if(e) e.stopPropagation(); fileInput.click(); }
+    ["dragenter","dragover"].forEach(ev =>
+      dropzone.addEventListener(ev, e => { e.preventDefault(); dropzone.classList.add("is-drag"); })
+    );
+    ["dragleave","drop"].forEach(ev =>
+      dropzone.addEventListener(ev, e => { e.preventDefault(); dropzone.classList.remove("is-drag"); })
+    );
+    dropzone.addEventListener("drop", e => {
+      const files = [].slice.call(e.dataTransfer ? e.dataTransfer.files : []).filter(f => f.name.toLowerCase().endsWith(".pdf"));
+      if(files.length) extractFiles(files);
+    });
+    dropzone.addEventListener("click", openPicker);
+    dropzone.addEventListener("keydown", e => {
+      if(e.key === "Enter" || e.key === " "){ e.preventDefault(); fileInput.click(); }
+    });
+    document.getElementById("select-btn").addEventListener("click", openPicker);
+    fileInput.addEventListener("change", e => {
+      const files = [].slice.call(e.target.files);
+      if(files.length) extractFiles(files);
+    });
+    window.addEventListener("dragover", e => e.preventDefault());
+    window.addEventListener("drop", e => e.preventDefault());
+
+    // ---------- beta signup form (Netlify Forms via fetch, no redirect) ----------
+    const betaForm = document.getElementById("beta-form");
+    const betaSuccess = document.getElementById("beta-success");
+    const betaError = document.getElementById("beta-error");
+    const betaSubmit = document.getElementById("beta-submit");
+
+    function encode(data){
+      return Object.keys(data).map(k => encodeURIComponent(k) + "=" + encodeURIComponent(data[k])).join("&");
+    }
+    betaForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      betaSuccess.classList.remove("show");
+      betaError.classList.remove("show");
+      betaSubmit.disabled = true;
+      betaSubmit.textContent = "Bezig…";
+      const formData = new FormData(betaForm);
+      const data = {};
+      formData.forEach((v,k) => { data[k] = v; });
+      try{
+        const r = await fetch("/", {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: encode(data),
+        });
+        if(r.ok){
+          betaSuccess.classList.add("show");
+          betaForm.reset();
+        } else {
+          throw new Error("HTTP " + r.status);
+        }
+      }catch(err){
+        betaError.classList.add("show");
+      } finally {
+        betaSubmit.disabled = false;
+        betaSubmit.textContent = "Aanmelden";
+      }
+    });
+  </script>
+</body>
+</html>

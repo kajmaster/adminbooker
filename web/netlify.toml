@@ -1,0 +1,21 @@
+# netlify.toml — Netlify deploy-instellingen voor adminbooker.com
+#
+# Plaats de inhoud van deze folder (web/) als publish-directory in Netlify.
+# Geen build-stap nodig — pure statische site.
+
+[build]
+  # De publish-directory is "web" als je vanaf de root van het project deployt.
+  # Als je ALLEEN de web/ folder als repo-root pakt, zet je dit op "." (zie DEPLOY.md).
+  publish = "."
+  command = ""
+
+# Beveiligingsheaders voor alle pagina's
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "SAMEORIGIN"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Permissions-Policy = "geolocation=(), microphone=(), camera=()"
+    # Sta inline JS toe (we hebben één script-block in index.html), Google Fonts, en de demo-backend.
+    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; worker-src 'self' blob: https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://cdnjs.cloudflare.com; form-action 'self';"

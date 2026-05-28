@@ -1,0 +1,26 @@
+{
+  "factuurnummer": "INV-2026-002",
+  "datum": "2026-03-18",
+  "vervaldatum": "2026-04-01",
+  "valuta": "EUR",
+  "betaaltermijn_dagen": 14,
+  "leverancier": {
+    "company_name": "De Bakkerij Vermeer",
+    "address1": "Marktplein 8",
+    "zipcode": "5611 EM",
+    "city": "Eindhoven",
+    "country": "NL",
+    "chamber_of_commerce": "17098765",
+    "tax_number": "NL856789012B02",
+    "iban": "NL44RABO0123456789"
+  },
+  "klant": "Cyflux",
+  "regels": [
+    {
+      "omschrijving": "Lunch vergadering 14 personen",
+      "aantal": 14,
+      "prijs_per_stuk": 8.5,
+      "btw_percentage": 9
+    }
+  ]
+}

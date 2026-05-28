@@ -1,0 +1,40 @@
+{
+  "leverancier": {
+    "company_name": "Office Plaza Nederland",
+    "address1": "Logistiekweg 5",
+    "zipcode": "3771 ME",
+    "city": "Barneveld",
+    "country": "NL",
+    "chamber_of_commerce": "20345678",
+    "tax_number": "NL801234567B01",
+    "iban": "NL12RABO0987654321"
+  },
+  "factuurnummer": "INV-2026-005",
+  "datum": "2026-02-25",
+  "vervaldatum": "2026-03-11",
+  "valuta": "EUR",
+  "prijzen_incl_btw": false,
+  "regels": [
+    {
+      "omschrijving": "A4 papier 5x500 vel",
+      "aantal": 5,
+      "prijs_per_stuk": 4.99,
+      "btw_percentage": 21
+    },
+    {
+      "omschrijving": "Pennen blauw doos 50",
+      "aantal": 2,
+      "prijs_per_stuk": 12.95,
+      "btw_percentage": 21
+    },
+    {
+      "omschrijving": "Koffie en thee bedrijfskeuken",
+      "aantal": 1,
+      "prijs_per_stuk": 38.50,
+      "btw_percentage": 9
+    }
+  ],
+  "totaal_excl_btw": 89.35,
+  "btw_bedrag": 14.14,
+  "totaal_incl_btw": 103.49
+}

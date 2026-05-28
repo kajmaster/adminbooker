@@ -1,0 +1,28 @@
+{
+  "leverancier": {
+    "company_name": "Hosting Solutions B.V.",
+    "address1": "Kerkstraat 12",
+    "zipcode": "3511 AB",
+    "city": "Utrecht",
+    "country": "NL",
+    "chamber_of_commerce": "30123456",
+    "tax_number": "NL821234567B01",
+    "iban": "NL91ABNA0417164300"
+  },
+  "factuurnummer": "INV-2026-001",
+  "datum": "2026-03-25",
+  "vervaldatum": "2026-04-08",
+  "valuta": "EUR",
+  "prijzen_incl_btw": false,
+  "regels": [
+    {
+      "omschrijving": "Webhosting Q2 2026",
+      "aantal": 1,
+      "prijs_per_stuk": 49.95,
+      "btw_percentage": 21
+    }
+  ],
+  "totaal_excl_btw": 49.95,
+  "btw_bedrag": 10.49,
+  "totaal_incl_btw": 60.44
+}

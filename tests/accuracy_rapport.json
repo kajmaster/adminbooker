@@ -1,0 +1,184 @@
+{
+  "samenvatting": {
+    "totaal_facturen": 10,
+    "volledig_correct": 10,
+    "volledig_correct_pct": 100.0,
+    "veld_accuracy_pct": {
+      "factuurnummer": 100.0,
+      "datum": 100.0,
+      "vervaldatum": 100.0,
+      "leverancier_naam": 100.0,
+      "leverancier_btw": 100.0,
+      "leverancier_kvk": 100.0,
+      "leverancier_iban": 100.0,
+      "aantal_regels": 100.0,
+      "regels_correct": 100.0,
+      "totaal_excl": 100.0,
+      "totaal_incl": 100.0
+    }
+  },
+  "per_factuur": [
+    {
+      "factuur": "factuur_01",
+      "fields": {
+        "factuurnummer": true,
+        "datum": true,
+        "vervaldatum": true,
+        "leverancier_naam": true,
+        "leverancier_btw": true,
+        "leverancier_kvk": true,
+        "leverancier_iban": true,
+        "aantal_regels": true,
+        "regels_correct": true,
+        "regel_detail": "1/1 regels exact correct",
+        "totaal_excl": true,
+        "totaal_incl": true
+      }
+    },
+    {
+      "factuur": "factuur_02",
+      "fields": {
+        "factuurnummer": true,
+        "datum": true,
+        "vervaldatum": true,
+        "leverancier_naam": true,
+        "leverancier_btw": true,
+        "leverancier_kvk": true,
+        "leverancier_iban": true,
+        "aantal_regels": true,
+        "regels_correct": true,
+        "regel_detail": "1/1 regels exact correct",
+        "totaal_excl": true,
+        "totaal_incl": true
+      }
+    },
+    {
+      "factuur": "factuur_03",
+      "fields": {
+        "factuurnummer": true,
+        "datum": true,
+        "vervaldatum": true,
+        "leverancier_naam": true,
+        "leverancier_btw": true,
+        "leverancier_kvk": true,
+        "leverancier_iban": true,
+        "aantal_regels": true,
+        "regels_correct": true,
+        "regel_detail": "1/1 regels exact correct",
+        "totaal_excl": true,
+        "totaal_incl": true
+      }
+    },
+    {
+      "factuur": "factuur_04",
+      "fields": {
+        "factuurnummer": true,
+        "datum": true,
+        "vervaldatum": true,
+        "leverancier_naam": true,
+        "leverancier_btw": true,
+        "aantal_regels": true,
+        "regels_correct": true,
+        "regel_detail": "1/1 regels exact correct",
+        "totaal_excl": true,
+        "totaal_incl": true
+      }
+    },
+    {
+      "factuur": "factuur_05",
+      "fields": {
+        "factuurnummer": true,
+        "datum": true,
+        "vervaldatum": true,
+        "leverancier_naam": true,
+        "leverancier_btw": true,
+        "leverancier_kvk": true,
+        "leverancier_iban": true,
+        "aantal_regels": true,
+        "regels_correct": true,
+        "regel_detail": "3/3 regels exact correct",
+        "totaal_excl": true,
+        "totaal_incl": true
+      }
+    },
+    {
+      "factuur": "factuur_06",
+      "fields": {
+        "factuurnummer": true,
+        "datum": true,
+        "vervaldatum": true,
+        "leverancier_naam": true,
+        "aantal_regels": true,
+        "regels_correct": true,
+        "regel_detail": "1/1 regels exact correct",
+        "totaal_excl": true,
+        "totaal_incl": true
+      }
+    },
+    {
+      "factuur": "factuur_07",
+      "fields": {
+        "factuurnummer": true,
+        "datum": true,
+        "vervaldatum": true,
+        "leverancier_naam": true,
+        "leverancier_btw": true,
+        "leverancier_kvk": true,
+        "leverancier_iban": true,
+        "aantal_regels": true,
+        "regels_correct": true,
+        "regel_detail": "2/2 regels exact correct",
+        "totaal_excl": true,
+        "totaal_incl": true
+      }
+    },
+    {
+      "factuur": "factuur_08",
+      "fields": {
+        "factuurnummer": true,
+        "datum": true,
+        "vervaldatum": true,
+        "leverancier_naam": true,
+        "leverancier_kvk": true,
+        "aantal_regels": true,
+        "regels_correct": true,
+        "regel_detail": "1/1 regels exact correct",
+        "totaal_excl": true,
+        "totaal_incl": true
+      }
+    },
+    {
+      "factuur": "factuur_09",
+      "fields": {
+        "factuurnummer": true,
+        "datum": true,
+        "vervaldatum": true,
+        "leverancier_naam": true,
+        "leverancier_btw": true,
+        "leverancier_iban": true,
+        "aantal_regels": true,
+        "regels_correct": true,
+        "regel_detail": "1/1 regels exact correct",
+        "totaal_excl": true,
+        "totaal_incl": true
+      }
+    },
+    {
+      "factuur": "factuur_10",
+      "fields": {
+        "factuurnummer": true,
+        "datum": true,
+        "vervaldatum": true,
+        "leverancier_naam": true,
+        "leverancier_btw": true,
+        "leverancier_kvk": true,
+        "leverancier_iban": true,
+        "aantal_regels": true,
+        "regels_correct": true,
+        "regel_detail": "2/2 regels exact correct",
+        "totaal_excl": true,
+        "totaal_incl": true
+      }
+    }
+  ]
+}

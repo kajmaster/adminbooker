@@ -1,0 +1,28 @@
+{
+  "leverancier": {
+    "company_name": "De Bakkerij Vermeer",
+    "address1": "Marktplein 8",
+    "zipcode": "5611 EM",
+    "city": "Eindhoven",
+    "country": "NL",
+    "chamber_of_commerce": "17098765",
+    "tax_number": "NL856789012B02",
+    "iban": "NL44RABO0123456789"
+  },
+  "factuurnummer": "INV-2026-002",
+  "datum": "2026-03-18",
+  "vervaldatum": "2026-04-01",
+  "valuta": "EUR",
+  "prijzen_incl_btw": false,
+  "regels": [
+    {
+      "omschrijving": "Lunch vergadering 14 personen",
+      "aantal": 14,
+      "prijs_per_stuk": 8.50,
+      "btw_percentage": 9
+    }
+  ],
+  "totaal_excl_btw": 119.00,
+  "btw_bedrag": 10.71,
+  "totaal_incl_btw": 129.71
+}

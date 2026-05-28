@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AdminBoeker - AI-boekhouder voor je administratie</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    /* AdminBoeker UI - v2 (clean rewrite) */
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    :root{
+      --bg:#fafafa;
+      --bg-elev:#ffffff;
+      --bg-soft:#f4f4f5;
+      --border:#e4e4e7;
+      --border-strong:#d4d4d8;
+      --text:#09090b;
+      --text-muted:#52525b;
+      --text-subtle:#71717a;
+      --primary:#0f172a;
+      --primary-hover:#1e293b;
+      --accent:#2563eb;
+      --accent-soft:#dbeafe;
+      --success:#16a34a;
+      --success-soft:#dcfce7;
+      --error:#dc2626;
+      --error-soft:#fee2e2;
+      --shadow-sm:0 1px 2px 0 rgb(0 0 0 / 0.05);
+      --shadow:0 1px 3px 0 rgb(0 0 0 / 0.07), 0 1px 2px -1px rgb(0 0 0 / 0.05);
+      --shadow-md:0 4px 6px -1px rgb(0 0 0 / 0.08), 0 2px 4px -2px rgb(0 0 0 / 0.05);
+      --shadow-lg:0 10px 15px -3px rgb(0 0 0 / 0.08), 0 4px 6px -4px rgb(0 0 0 / 0.05);
+      --radius:10px;
+      --radius-lg:16px;
+    }
+    html,body{height:100%}
+    body{
+      font-family:'Inter',system-ui,-apple-system,sans-serif;
+      font-feature-settings:"cv11","ss01";
+      background:var(--bg);
+      color:var(--text);
+      -webkit-font-smoothing:antialiased;
+      line-height:1.5;
+    }
+    .mono{font-family:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,monospace}
+
+    .app{
+      max-width:1080px;
+      margin:0 auto;
+      padding:32px 24px 80px;
+    }
+
+    .topbar{
+      display:flex;align-items:center;justify-content:space-between;
+      padding-bottom:24px;border-bottom:1px solid var(--border);margin-bottom:40px;
+    }
+    .brand{display:flex;align-items:center;gap:12px}
+    .brand-logo{
+      width:36px;height:36px;border-radius:9px;
+      background:linear-gradient(135deg,#0f172a 0%,#334155 100%);
+      display:flex;align-items:center;justify-content:center;box-shadow:var(--shadow-md);
+    }
+    .brand-logo svg{width:18px;height:18px;color:#fff}
+    .brand-name{font-weight:700;font-size:17px;letter-spacing:-0.01em}
+    .brand-tag{font-size:13px;color:var(--text-subtle)}
+
+    .provider-select{
+      font-family:inherit;font-size:13px;font-weight:500;color:var(--text);
+      padding:6px 30px 6px 12px;border:1px solid var(--border);border-radius:999px;
+      background:var(--bg-elev) url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2371717a' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'></polyline></svg>") no-repeat right 10px center;
+      -webkit-appearance:none;-moz-appearance:none;appearance:none;
+      cursor:pointer;outline:none;transition:border-color .15s, box-shadow .15s;
+    }
+    .provider-select:hover{border-color:#94a3b8}
+    .provider-select:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+    .provider-select option:disabled{color:var(--text-subtle)}
+    .status-pill{
+      display:inline-flex;align-items:center;gap:8px;
+      padding:6px 12px;border-radius:999px;
+      background:var(--bg-soft);border:1px solid var(--border);
+      font-size:13px;color:var(--text-muted);font-weight:500;
+    }
+    .status-pill .dot{width:8px;height:8px;border-radius:50%;background:var(--text-subtle)}
+    .status-pill.ok .dot{background:var(--success);box-shadow:0 0 0 3px var(--success-soft)}
+    .status-pill.error .dot{background:var(--error)}
+
+    .hero{margin-bottom:32px}
+    .hero h1{font-size:32px;line-height:1.2;letter-spacing:-0.025em;font-weight:700;margin-bottom:10px}
+    .hero p{font-size:15px;color:var(--text-muted);max-width:600px}
+
+    .mode-toggle{display:inline-flex;align-items:center;gap:0;padding:4px;background:var(--bg-soft);border:1px solid var(--border);border-radius:999px;margin-bottom:20px}
+    .mode-btn{padding:7px 16px;border-radius:999px;border:0;background:transparent;font-family:inherit;font-size:13px;font-weight:500;color:var(--text-muted);cursor:pointer;transition:all .15s}
+    .mode-btn:hover{color:var(--text)}
+    .mode-btn.active{background:#fff;color:var(--text);box-shadow:var(--shadow-sm)}
+    .mode-btn svg{width:13px;height:13px;margin-right:6px;vertical-align:-2px}
+    .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:24px}
+    .stat{background:var(--bg-elev);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px}
+    .stat .label{font-size:12px;text-transform:uppercase;letter-spacing:0.04em;color:var(--text-subtle);font-weight:500}
+    .stat .value{font-size:22px;font-weight:600;letter-spacing:-0.015em;margin-top:4px}
+    .stat .delta{font-size:12px;color:var(--text-muted);margin-top:2px}
+
+    /* Dropzone - explicit block layout, all children naturally centered via text-align */
+    .dropzone{
+      display:block;
+      width:100%;
+      border:2px dashed var(--border-strong);
+      background:var(--bg-elev);
+      border-radius:var(--radius-lg);
+      padding:64px 32px;
+      text-align:center;
+      cursor:pointer;
+      transition:border-color .18s ease, background .18s ease, box-shadow .18s ease;
+      box-shadow:var(--shadow-sm);
+      user-select:none;
+    }
+    .dropzone:hover{border-color:#94a3b8;background:#fcfcfd}
+    .dropzone.is-drag{border-color:var(--accent);background:var(--accent-soft);box-shadow:var(--shadow-lg)}
+    .dropzone.is-busy{pointer-events:none;opacity:.7}
+    .dropzone-inner{
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:center;
+      gap:0;
+    }
+    .dropzone-icon{
+      width:56px;height:56px;border-radius:14px;
+      background:linear-gradient(135deg,#f1f5f9 0%,#e2e8f0 100%);
+      display:flex;align-items:center;justify-content:center;
+      color:var(--primary);
+      margin-bottom:16px;
+    }
+    .dropzone-icon svg{width:24px;height:24px}
+    .dropzone-title{font-size:18px;font-weight:600;margin-bottom:6px;letter-spacing:-0.01em}
+    .dropzone-sub{font-size:14px;color:var(--text-muted);margin-bottom:18px;max-width:520px}
+    .dropzone-hint{font-size:12px;color:var(--text-subtle);margin-top:14px}
+
+    /* hidden file input - off-screen but accessible */
+    .file-input-hidden{
+      position:absolute;
+      left:-9999px;
+      top:auto;
+      width:1px;height:1px;
+      overflow:hidden;
+    }
+
+    .btn{
+      display:inline-flex;align-items:center;gap:8px;
+      font-family:inherit;font-size:14px;font-weight:500;
+      padding:9px 16px;border-radius:8px;cursor:pointer;border:0;
+      transition:background .15s ease, transform .15s ease;
+    }
+    .btn-primary{background:var(--primary);color:#fff;box-shadow:var(--shadow)}
+    .btn-primary:hover{background:var(--primary-hover);transform:translateY(-1px)}
+
+    .feed{margin-top:32px;display:flex;flex-direction:column;gap:12px}
+    .feed-empty{
+      padding:24px;text-align:center;color:var(--text-subtle);font-size:13px;
+      border:1px dashed var(--border);border-radius:var(--radius);
+    }
+    .card{
+      background:var(--bg-elev);border:1px solid var(--border);
+      border-radius:var(--radius);padding:18px 20px;box-shadow:var(--shadow-sm);
+      animation:slideIn .35s cubic-bezier(0.22,1,0.36,1);
+    }
+    @keyframes slideIn{
+      from{opacity:0;transform:translateY(-6px)}
+      to{opacity:1;transform:translateY(0)}
+    }
+    .card-row{display:flex;align-items:center;gap:14px}
+    .card-icon{
+      flex:0 0 auto;width:36px;height:36px;border-radius:9px;
+      display:flex;align-items:center;justify-content:center;
+    }
+    .card-icon svg{width:18px;height:18px}
+    .card-icon.ok{background:var(--success-soft);color:var(--success)}
+    .card-icon.error{background:var(--error-soft);color:var(--error)}
+    .card-icon.busy{background:var(--bg-soft);color:var(--text-muted)}
+    .card-body{flex:1;min-width:0}
+    .card-title{
+      font-weight:600;font-size:14px;letter-spacing:-0.005em;color:var(--text);margin-bottom:2px;
+      white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+    }
+    .card-sub{font-size:12px;color:var(--text-muted)}
+    .card-meta{
+      display:flex;gap:18px;margin-top:14px;padding-top:14px;
+      border-top:1px solid var(--border);font-size:13px;flex-wrap:wrap;
+    }
+    .card-meta .item{display:flex;flex-direction:column;gap:2px}
+    .card-meta .label{font-size:11px;text-transform:uppercase;letter-spacing:0.04em;color:var(--text-subtle);font-weight:500}
+    .card-meta .value{font-weight:500;color:var(--text)}
+    .card-link{
+      display:inline-flex;align-items:center;gap:6px;
+      color:var(--accent);text-decoration:none;font-weight:500;font-size:13px;margin-top:10px;
+    }
+    .card-link:hover{text-decoration:underline}
+
+    .spinner{
+      width:14px;height:14px;border-radius:50%;
+      border:2px solid var(--border);border-top-color:var(--text-muted);
+      animation:spin .8s linear infinite;
+    }
+    @keyframes spin{to{transform:rotate(360deg)}}
+
+    .footer{
+      margin-top:48px;padding-top:24px;border-top:1px solid var(--border);
+      display:flex;justify-content:space-between;align-items:center;
+      font-size:12px;color:var(--text-subtle);
+    }
+
+    @media (max-width:640px){
+      .hero h1{font-size:24px}
+      .stats{grid-template-columns:1fr}
+      .dropzone{padding:40px 20px}
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+
+    <div class="topbar">
+      <div class="brand">
+        <div class="brand-logo">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 7l9-4 9 4-9 4-9-4z"></path>
+            <path d="M3 12l9 4 9-4"></path>
+            <path d="M3 17l9 4 9-4"></path>
+          </svg>
+        </div>
+        <div>
+          <div class="brand-name">AdminBoeker</div>
+          <div class="brand-tag" id="brand-tag">AI-boekhouder voor je administratie</div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <a href="/inbox" title="Geboekte facturen nakijken (te controleren)"
+           style="font-size:13px;font-weight:600;color:#2563eb;text-decoration:none;
+                  padding:6px 10px;border:1px solid #dbeafe;border-radius:8px">Te controleren</a>
+        <a href="/sandbox" title="Test de boeknauwkeurigheid op een stapel facturen"
+           style="font-size:13px;font-weight:600;color:#2563eb;text-decoration:none;
+                  padding:6px 10px;border:1px solid #dbeafe;border-radius:8px">Sandbox &amp; accuracy</a>
+        <a href="/logout" title="Uitloggen"
+           style="font-size:13px;font-weight:500;color:#6b7280;text-decoration:none;
+                  padding:6px 10px;border:1px solid #e5e7eb;border-radius:8px">Uitloggen</a>
+        <select id="provider-select" class="provider-select" title="Boekhoudpakket">
+          <option value="moneybird">Moneybird</option>
+          <option value="rompslomp">Rompslomp (beta)</option>
+          <option value="exact">Exact Online</option>
+        </select>
+        <div id="health" class="status-pill">
+          <span class="dot"></span>
+          <span class="text">Verbinding controleren...</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="hero">
+      <h1 id="hero-title">Sleep een inkoopfactuur, klaar.</h1>
+      <p id="hero-sub">De agent leest je factuur, herkent leverancier en regels, en boekt 'm volledig automatisch in Moneybird. Geen knoppen, geen review.</p>
+    </div>
+
+    <div class="mode-toggle" role="tablist" aria-label="Boekingsmodus">
+      <button type="button" class="mode-btn active" id="mode-inkoop" role="tab" aria-selected="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"></path><polyline points="12 5 5 12 12 19"></polyline></svg>
+        Inkoop
+      </button>
+      <button type="button" class="mode-btn" id="mode-verkoop" role="tab" aria-selected="false">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"></path><polyline points="12 5 19 12 12 19"></polyline></svg>
+        Verkoop
+      </button>
+      <button type="button" class="mode-btn" id="mode-bank" role="tab" aria-selected="false">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="13" rx="2"></rect><line x1="3" y1="10" x2="21" y2="10"></line><line x1="7" y1="15" x2="7" y2="15.01"></line><line x1="11" y1="15" x2="13" y2="15"></line></svg>
+        Bank
+      </button>
+    </div>
+
+    <div class="stats">
+      <div class="stat">
+        <div class="label">Geboekt deze sessie</div>
+        <div id="stat-count" class="value">0</div>
+        <div class="delta">facturen</div>
+      </div>
+      <div class="stat">
+        <div class="label">Totaal verwerkt</div>
+        <div id="stat-total" class="value">EUR 0,00</div>
+        <div class="delta">incl. BTW</div>
+      </div>
+      <div class="stat">
+        <div class="label">Gemiddelde doorlooptijd</div>
+        <div id="stat-avg" class="value">-</div>
+        <div class="delta">per factuur</div>
+      </div>
+    </div>
+
+    <input id="file-input" class="file-input-hidden" type="file" accept="application/pdf,.pdf,.csv,.tsv,.txt,.mt940,.sta,.940" multiple>
+
+    <div id="dropzone" class="dropzone" role="button" tabindex="0">
+      <div class="dropzone-inner">
+        <div class="dropzone-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="17 8 12 3 7 8"></polyline>
+            <line x1="12" y1="3" x2="12" y2="15"></line>
+          </svg>
+        </div>
+        <div class="dropzone-title">Sleep PDF-facturen hierheen</div>
+        <div class="dropzone-sub">of klik om uit te kiezen - meerdere tegelijk mag</div>
+        <button type="button" class="btn btn-primary" id="select-btn">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+          </svg>
+          Bestanden selecteren
+        </button>
+        <div class="dropzone-hint">PDF - max 25 MB per bestand</div>
+      </div>
+    </div>
+
+    <div id="feed" class="feed">
+      <div class="feed-empty">Nog geen facturen verwerkt in deze sessie.</div>
+    </div>
+
+    <div class="footer">
+      <div>AdminBoeker - prototype</div>
+      <div><span id="admin-info">-</span></div>
+    </div>
+  </div>
+
+  <script>
+  const $ = (s) => document.querySelector(s);
+  const feed = $("#feed");
+  const dropzone = $("#dropzone");
+  const fileInput = $("#file-input");
+  const stats = { count: 0, total: 0, durations: [] };
+  let mode = "inkoop"; // "inkoop" of "verkoop"
+
+  // Display-naam van het gekozen pakket (zonder "(beta)" suffix)
+  function currentProviderName(){
+    const sel = document.getElementById("provider-select");
+    if(!sel) return "je boekhoudpakket";
+    const txt = sel.options[sel.selectedIndex] ? sel.options[sel.selectedIndex].text : "";
+    return txt.replace(/\s*\(.*?\)\s*/g, "").trim() || "je boekhoudpakket";
+  }
+
+  const HERO_COPY = {
+    inkoop: {
+      title: "Sleep een inkoopfactuur, klaar.",
+      sub: "De agent leest je factuur, herkent leverancier en regels, en boekt 'm volledig automatisch in je boekhoudpakket. Geen knoppen, geen review.",
+      dropTitle: "Sleep PDF-facturen hierheen",
+      dropSub: "Inkoopfacturen — of klik om uit te kiezen, meerdere tegelijk mag",
+    },
+    verkoop: {
+      title: "Sleep een verkoopfactuur, klaar.",
+      sub: "De agent leest je verkoopfactuur, herkent klant en regels, en boekt 'm direct als open factuur in je boekhoudpakket.",
+      dropTitle: "Sleep PDF-verkoopfacturen hierheen",
+      dropSub: "Verkoopfacturen — worden definitief geboekt, geen e-mail verstuurd",
+    },
+    bank: {
+      title: "Sleep een bankafschrift, klaar.",
+      sub: "De agent leest je bankbestand (CSV of MT940), zet de mutaties in je boekhoudpakket en koppelt ze automatisch aan openstaande facturen. Wat niet matcht laat hij voor je staan.",
+      dropTitle: "Sleep een bankafschrift hierheen",
+      dropSub: "CSV / TSV / MT940 — wordt geïmporteerd en gematcht met openstaande facturen",
+    },
+  };
+
+  function setMode(newMode){
+    mode = newMode;
+    for(const m of ["inkoop", "verkoop", "bank"]){
+      const btn = document.getElementById("mode-" + m);
+      if(btn){
+        btn.classList.toggle("active", mode === m);
+        btn.setAttribute("aria-selected", mode === m);
+      }
+    }
+    const c = HERO_COPY[mode];
+    document.getElementById("hero-title").textContent = c.title;
+    document.getElementById("hero-sub").textContent = c.sub;
+    document.querySelector(".dropzone-title").textContent = c.dropTitle;
+    document.querySelector(".dropzone-sub").textContent = c.dropSub;
+    // Bestandsfilter bij file picker afstemmen op modus
+    if(mode === "bank"){
+      fileInput.setAttribute("accept", ".csv,.tsv,.txt,.mt940,.sta,.940");
+    } else {
+      fileInput.setAttribute("accept", "application/pdf,.pdf");
+    }
+  }
+
+  function fmtEuro(n){
+    if(n==null) return "-";
+    return "EUR " + Number(n).toLocaleString("nl-NL", {minimumFractionDigits:2, maximumFractionDigits:2});
+  }
+  function fmtSec(ms){
+    if(ms==null) return "-";
+    return (ms/1000).toFixed(1) + "s";
+  }
+  function clearEmpty(){
+    const e = feed.querySelector(".feed-empty");
+    if(e) e.remove();
+  }
+  function updateStats(){
+    $("#stat-count").textContent = stats.count;
+    $("#stat-total").textContent = fmtEuro(stats.total);
+    if(stats.durations.length){
+      const avg = stats.durations.reduce((a,b)=>a+b,0)/stats.durations.length;
+      $("#stat-avg").textContent = fmtSec(avg);
+    }
+  }
+
+  async function checkHealth(){
+    const pill = $("#health");
+    pill.classList.remove("ok", "error", "warn");
+    pill.querySelector(".text").textContent = "Verbinding controleren...";
+    try{
+      const r = await fetch("/api/health");
+      const j = await r.json();
+      // Vul provider-selector op basis van wat configured is
+      if(j.providers){
+        const sel = $("#provider-select");
+        sel.innerHTML = "";
+        for(const p of j.providers){
+          const opt = document.createElement("option");
+          opt.value = p.name;
+          let label = p.display_name;
+          if(!p.implemented) label += " (in ontwikkeling)";
+          else if(!p.configured) label += " (niet geconfigureerd)";
+          opt.textContent = label;
+          if(p.name === (j.provider || "moneybird")) opt.selected = true;
+          opt.disabled = !p.configured;
+          sel.appendChild(opt);
+        }
+      }
+      if(j.ok){
+        pill.classList.add("ok");
+        const pmap = {moneybird: "Moneybird", rompslomp: "Rompslomp", exact: "Exact Online"};
+        const pname = pmap[j.provider] || currentProviderName();
+        pill.querySelector(".text").textContent = "Verbonden met " + (j.administration_name || pname);
+        $("#admin-info").textContent = pname + " · " + (j.administration_name || j.administration_id || "—");
+        const bt = document.getElementById("brand-tag");
+        if(bt) bt.textContent = "AI-boekhouder voor " + pname;
+      } else {
+        pill.classList.add("error");
+        pill.querySelector(".text").textContent = j.error ? j.error.substring(0, 60) : "Niet verbonden";
+        $("#admin-info").textContent = "Geen verbinding";
+      }
+    }catch(e){
+      pill.classList.add("error");
+      pill.querySelector(".text").textContent = "Server niet bereikbaar";
+    }
+  }
+  checkHealth();
+
+  // Provider switcher
+  document.getElementById("provider-select").addEventListener("change", async (e) => {
+    const name = e.target.value;
+    try{
+      const r = await fetch("/api/providers", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({name})
+      });
+      const j = await r.json();
+      if(j.ok){
+        await checkHealth();
+      } else {
+        alert("Kon niet wisselen: " + (j.error || "onbekende fout"));
+      }
+    }catch(err){
+      alert("Server bereikt niet: " + err.message);
+    }
+  });
+
+  function escapeHtml(s){
+    return String(s == null ? "" : s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));
+  }
+
+  function busyCard(filename){
+    clearEmpty();
+    const id = "c" + Date.now() + Math.random().toString(36).slice(2,6);
+    const el = document.createElement("div");
+    el.className = "card";
+    el.id = id;
+    el.innerHTML =
+      '<div class="card-row">' +
+        '<div class="card-icon busy"><div class="spinner"></div></div>' +
+        '<div class="card-body">' +
+          '<div class="card-title">' + escapeHtml(filename) + '</div>' +
+          '<div class="card-sub">PDF lezen + boeken in ' + currentProviderName() + '...</div>' +
+        '</div>' +
+      '</div>';
+    feed.prepend(el);
+    return id;
+  }
+  function successCard(id, filename, data, durationMs){
+    const el = document.getElementById(id);
+    if(!el) return;
+    const prov = (data.provider || currentProviderName() || "").toLowerCase();
+    const isInkoop = data.type !== "verkoop";
+    let locatie;
+    if(prov.indexOf("rompslomp") !== -1){ locatie = isInkoop ? "Uitgaven" : "Facturen"; }
+    else { locatie = isInkoop ? "Inkoop" : "Facturen"; }
+    el.innerHTML =
+      '<div class="card-row">' +
+        '<div class="card-icon ok"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg></div>' +
+        '<div class="card-body">' +
+          '<div class="card-title">' + escapeHtml(filename) + '</div>' +
+          '<div class="card-sub">Geboekt in ' + escapeHtml(data.provider_display || currentProviderName()) + ' &middot; te vinden onder &ldquo;' + escapeHtml(locatie) + '&rdquo; - ' + fmtSec(durationMs) + '</div>' +
+        '</div>' +
+      '</div>' +
+      '<div class="card-meta">' +
+        '<div class="item"><div class="label">' + (data.type === "verkoop" ? "Klant" : "Leverancier") + '</div><div class="value">' + escapeHtml(data.contact_naam || data.leverancier) + '</div></div>' +
+        '<div class="item"><div class="label">Factuurnr</div><div class="value mono">' + escapeHtml(data.factuurnummer) + '</div></div>' +
+        '<div class="item"><div class="label">Datum</div><div class="value mono">' + escapeHtml(data.datum) + '</div></div>' +
+        '<div class="item"><div class="label">Totaal</div><div class="value">' + fmtEuro(data.totaal_incl_btw) + '</div></div>' +
+        '<div class="item"><div class="label">Type</div><div class="value">' + (data.type === "verkoop" ? "Verkoop" : "Inkoop") + '</div></div>' +
+        '<div class="item"><div class="label">Status</div><div class="value">' + escapeHtml(data.state) + '</div></div>' +
+      '</div>' +
+      '<a class="card-link" href="' + data.moneybird_url + '" target="_blank" rel="noreferrer">Bekijk in ' + escapeHtml(data.provider_display || currentProviderName()) + ' (onder ' + escapeHtml(locatie) + ')</a>';
+  }
+  function errorCard(id, filename, message, parsed){
+    const el = document.getElementById(id);
+    if(!el) return;
+    let detail = "";
+    if(parsed){
+      detail =
+        '<div class="card-meta">' +
+          '<div class="item"><div class="label">Gevonden leverancier</div><div class="value">' + escapeHtml(parsed && parsed.leverancier && parsed.leverancier.company_name) + '</div></div>' +
+          '<div class="item"><div class="label">Factuurnr</div><div class="value mono">' + escapeHtml(parsed && parsed.factuurnummer) + '</div></div>' +
+          '<div class="item"><div class="label">Datum</div><div class="value mono">' + escapeHtml(parsed && parsed.datum) + '</div></div>' +
+        '</div>';
+    }
+    el.innerHTML =
+      '<div class="card-row">' +
+        '<div class="card-icon error"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg></div>' +
+        '<div class="card-body">' +
+          '<div class="card-title">' + escapeHtml(filename) + '</div>' +
+          '<div class="card-sub" style="color:var(--error)">Niet geboekt: ' + escapeHtml(message) + '</div>' +
+        '</div>' +
+      '</div>' +
+      detail;
+  }
+
+  function fileOkForMode(file){
+    const n = file.name.toLowerCase();
+    if(mode === "bank"){
+      return n.endsWith(".csv") || n.endsWith(".tsv") || n.endsWith(".txt") ||
+             n.endsWith(".mt940") || n.endsWith(".sta") || n.endsWith(".940");
+    }
+    return n.endsWith(".pdf");
+  }
+
+  async function bookFile(file){
+    if(!file || !fileOkForMode(file)) return;
+    const cardId = busyCard(file.name);
+    const fd = new FormData();
+    fd.append("file", file);
+    fd.append("type", mode);
+    fd.append("provider", document.getElementById("provider-select").value);
+    const start = performance.now();
+    try{
+      const r = await fetch("/api/book", { method: "POST", body: fd });
+      const j = await r.json();
+      const dur = performance.now() - start;
+      if(j.ok){
+        if(j.type === "bank"){
+          bankCard(cardId, file.name, j, dur);
+        } else {
+          successCard(cardId, file.name, j, dur);
+          stats.total += Number(j.totaal_incl_btw || 0);
+        }
+        stats.count += 1;
+        stats.durations.push(dur);
+        updateStats();
+      } else {
+        errorCard(cardId, file.name, j.error || "Onbekende fout", j.parsed);
+      }
+    }catch(e){
+      errorCard(cardId, file.name, "Server bereikt niet: " + e.message);
+    }
+  }
+
+  function bankCard(id, filename, data, durationMs){
+    const el = document.getElementById(id);
+    if(!el) return;
+    const matchPct = data.totaal_mutaties
+      ? Math.round(data.gekoppeld / data.totaal_mutaties * 100)
+      : 0;
+    let regelsHtml = "";
+    if(data.details && data.details.length){
+      const items = data.details.slice(0, 20).map(d => {
+        const status = d.status === "gekoppeld"
+          ? '<span style="color:var(--success)">✓ ' + escapeHtml(d.matched_factuur || "") + '</span>'
+          : d.status === "al gematcht"
+            ? '<span style="color:var(--text-subtle)">— al gematcht</span>'
+            : '<span style="color:var(--warning)">? geen match (score ' + (d.beste_score || 0) + ')</span>';
+        return '<div style="display:flex;gap:12px;font-size:12px;padding:4px 0;border-top:1px solid var(--border)">' +
+          '<div class="mono" style="min-width:88px;color:var(--text-subtle)">' + escapeHtml(d.datum || "") + '</div>' +
+          '<div class="mono" style="min-width:80px;text-align:right">' + fmtEuro(d.bedrag) + '</div>' +
+          '<div style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + escapeHtml(d.omschrijving || "") + '">' + escapeHtml(d.omschrijving || "") + '</div>' +
+          '<div style="min-width:140px;text-align:right">' + status + '</div>' +
+          '</div>';
+      }).join("");
+      regelsHtml = '<div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border)">' + items;
+      if(data.details.length > 20){
+        regelsHtml += '<div style="font-size:12px;color:var(--text-subtle);padding-top:8px">+ ' + (data.details.length - 20) + ' meer mutaties</div>';
+      }
+      regelsHtml += '</div>';
+    }
+    el.innerHTML =
+      '<div class="card-row">' +
+        '<div class="card-icon ok"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="13" rx="2"></rect><line x1="3" y1="10" x2="21" y2="10"></line></svg></div>' +
+        '<div class="card-body">' +
+          '<div class="card-title">' + escapeHtml(filename) + '</div>' +
+          '<div class="card-sub">Bankafschrift geïmporteerd · ' + fmtSec(durationMs) + '</div>' +
+        '</div>' +
+      '</div>' +
+      '<div class="card-meta">' +
+        '<div class="item"><div class="label">Mutaties</div><div class="value">' + data.totaal_mutaties + '</div></div>' +
+        '<div class="item"><div class="label">Automatisch gekoppeld</div><div class="value" style="color:var(--success)">' + data.gekoppeld + ' (' + matchPct + '%)</div></div>' +
+        '<div class="item"><div class="label">Geen match</div><div class="value" style="color:var(--warning)">' + data.geen_match + '</div></div>' +
+        '<div class="item"><div class="label">Statement ID</div><div class="value mono">' + escapeHtml(data.statement_id || "—") + '</div></div>' +
+      '</div>' +
+      regelsHtml;
+  }
+
+  async function bookFiles(fileList){
+    dropzone.classList.add("is-busy");
+    for(const f of fileList){
+      await bookFile(f);
+    }
+    dropzone.classList.remove("is-busy");
+    fileInput.value = "";
+  }
+
+  function openPicker(e){
+    if(e) e.stopPropagation();
+    fileInput.click();
+  }
+
+  ["dragenter","dragover"].forEach(ev =>
+    dropzone.addEventListener(ev, e => {e.preventDefault(); dropzone.classList.add("is-drag");})
+  );
+  ["dragleave","drop"].forEach(ev =>
+    dropzone.addEventListener(ev, e => {e.preventDefault(); dropzone.classList.remove("is-drag");})
+  );
+  dropzone.addEventListener("drop", e => {
+    const files = [].slice.call(e.dataTransfer ? e.dataTransfer.files : [])
+      .filter(fileOkForMode);
+    if(files.length) bookFiles(files);
+  });
+  dropzone.addEventListener("click", openPicker);
+  dropzone.addEventListener("keydown", e => {
+    if(e.key === "Enter" || e.key === " "){ e.preventDefault(); fileInput.click(); }
+  });
+  $("#select-btn").addEventListener("click", openPicker);
+
+  fileInput.addEventListener("change", e => {
+    const files = [].slice.call(e.target.files);
+    if(files.length) bookFiles(files);
+  });
+
+  window.addEventListener("dragover", e => e.preventDefault());
+  window.addEventListener("drop",     e => e.preventDefault());
+
+  // Mode toggle
+  document.getElementById("mode-inkoop").addEventListener("click", () => setMode("inkoop"));
+  document.getElementById("mode-verkoop").addEventListener("click", () => setMode("verkoop"));
+  document.getElementById("mode-bank").addEventListener("click", () => setMode("bank"));
+  </script>
+</body>
+</html>

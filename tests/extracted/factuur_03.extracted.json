@@ -1,0 +1,29 @@
+{
+  "leverancier": {
+    "company_name": "Stuc & Plafond Werken VOF",
+    "address1": "Industrieweg 22",
+    "zipcode": "5048 AB",
+    "city": "Tilburg",
+    "country": "NL",
+    "chamber_of_commerce": "45678901",
+    "tax_number": "NL812345678B01",
+    "iban": "NL18INGB0123456789"
+  },
+  "factuurnummer": "INV-2026-003",
+  "datum": "2026-03-11",
+  "vervaldatum": "2026-03-25",
+  "valuta": "EUR",
+  "prijzen_incl_btw": false,
+  "btw_verlegd": true,
+  "regels": [
+    {
+      "omschrijving": "Stucwerk woonkamer 45m2",
+      "aantal": 1,
+      "prijs_per_stuk": 1850.00,
+      "btw_percentage": 0
+    }
+  ],
+  "totaal_excl_btw": 1850.00,
+  "btw_bedrag": 0.00,
+  "totaal_incl_btw": 1850.00
+}

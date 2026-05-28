@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AdminBoeker — inloggen</title>
+<style>
+  :root{ --ink:#1d2433; --muted:#6b7280; --line:#e5e7eb; --accent:#2563eb;
+         --bad:#b91c1c; --bad-bg:#fee2e2; }
+  *{box-sizing:border-box}
+  body{margin:0;min-height:100vh;background:#f5f6f8;color:var(--ink);
+       font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+       display:grid;place-items:center;padding:24px}
+  .card{background:#fff;border:1px solid var(--line);border-radius:12px;
+        box-shadow:0 1px 3px rgba(16,24,40,.08),0 1px 2px rgba(16,24,40,.06);
+        width:100%;max-width:380px;padding:28px 26px}
+  .brand{display:flex;align-items:center;gap:10px;margin-bottom:18px}
+  .brand .logo{width:34px;height:34px;border-radius:8px;background:var(--accent);
+               display:grid;place-items:center;color:#fff;font-weight:700}
+  .brand h1{margin:0;font-size:18px}
+  .brand .tag{margin:0;font-size:12px;color:var(--muted)}
+  label{display:block;font-size:13px;font-weight:600;margin:12px 0 4px}
+  input{width:100%;border:1px solid var(--line);border-radius:8px;padding:9px 11px;
+        font:inherit;background:#fafbfc}
+  input:focus{outline:none;border-color:var(--accent);background:#fff}
+  .btn{margin-top:16px;width:100%;background:var(--accent);color:#fff;border:0;
+       padding:10px 14px;border-radius:8px;font-weight:600;cursor:pointer;font-size:14px}
+  .btn:hover{filter:brightness(.95)}
+  .err{margin-top:12px;background:var(--bad-bg);color:var(--bad);padding:8px 11px;
+       border-radius:8px;font-size:13px}
+  .foot{margin-top:14px;font-size:12px;color:var(--muted);text-align:center}
+</style>
+</head>
+<body>
+<form class="card" method="post" action="/login">
+  <div class="brand">
+    <div class="logo">A</div>
+    <div><h1>AdminBoeker</h1><p class="tag">Inloggen om door te gaan</p></div>
+  </div>
+  {% if fout %}<div class="err">{{ fout }}</div>{% endif %}
+  <input type="hidden" name="next" value="{{ nxt|e }}">
+  <label for="u">Gebruikersnaam</label>
+  <input id="u" name="username" autocomplete="username" autofocus required>
+  <label for="p">Wachtwoord</label>
+  <input id="p" name="password" type="password" autocomplete="current-password" required>
+  <button class="btn" type="submit">Inloggen</button>
+  <div class="foot">Veilig opgeslagen in jouw eigen instance.</div>
+</form>
+</body>
+</html>

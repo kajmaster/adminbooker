@@ -1,0 +1,34 @@
+{
+  "leverancier": {
+    "company_name": "IT Consultancy van der Berg",
+    "address1": "Computerweg 14",
+    "zipcode": "3542 DR",
+    "city": "Utrecht",
+    "country": "NL",
+    "chamber_of_commerce": "31987654",
+    "tax_number": "NL856654321B01",
+    "iban": "NL21INGB0001234567"
+  },
+  "factuurnummer": "INV-2026-010",
+  "datum": "2026-01-21",
+  "vervaldatum": "2026-02-04",
+  "valuta": "EUR",
+  "prijzen_incl_btw": false,
+  "regels": [
+    {
+      "omschrijving": "Implementatie ERP-koppeling fase 1",
+      "aantal": 40,
+      "prijs_per_stuk": 125.00,
+      "btw_percentage": 21
+    },
+    {
+      "omschrijving": "Reiskosten op locatie",
+      "aantal": 1,
+      "prijs_per_stuk": 187.50,
+      "btw_percentage": 21
+    }
+  ],
+  "totaal_excl_btw": 5187.50,
+  "btw_bedrag": 1089.38,
+  "totaal_incl_btw": 6276.88
+}

@@ -1,0 +1,16 @@
+# render.yaml — Blueprint voor Render.com
+# Plak deze repo-URL in Render → New → Blueprint, en hij configureert alles voor je.
+
+services:
+  - type: web
+    name: adminbooker-demo
+    runtime: python
+    plan: free
+    rootDir: demo_backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app --workers 2 --threads 4 --timeout 60 --bind 0.0.0.0:$PORT
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.9
+    autoDeploy: true
+    healthCheckPath: /api/health

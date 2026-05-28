@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AdminBoeker — Sandbox / Accuracy-test</title>
+<style>
+  :root{
+    --bg:#f5f6f8; --panel:#ffffff; --ink:#1d2433; --muted:#6b7280;
+    --line:#e5e7eb; --accent:#2563eb; --accent-dark:#1d4ed8;
+    --ok:#15803d; --ok-bg:#dcfce7; --bad:#b91c1c; --bad-bg:#fee2e2;
+    --warn:#b45309; --warn-bg:#fef3c7; --neutral-bg:#f3f4f6;
+    --radius:10px; --shadow:0 1px 3px rgba(16,24,40,.08),0 1px 2px rgba(16,24,40,.06);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;}
+  a{color:var(--accent);text-decoration:none}
+  a:hover{text-decoration:underline}
+  .wrap{max-width:1240px;margin:0 auto;padding:20px 22px 60px}
+  header.top{display:flex;align-items:baseline;justify-content:space-between;gap:16px;margin-bottom:6px}
+  header.top h1{font-size:20px;margin:0;letter-spacing:-.01em}
+  .sub{color:var(--muted);font-size:13px;margin:0 0 18px}
+  .pill{display:inline-flex;align-items:center;gap:6px;font-size:12px;padding:3px 9px;
+    border-radius:999px;background:var(--neutral-bg);color:var(--muted);border:1px solid var(--line)}
+  .pill .dot{width:8px;height:8px;border-radius:50%;background:#9ca3af}
+  .pill.live .dot{background:var(--ok)}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+    box-shadow:var(--shadow);padding:18px 20px;margin-bottom:18px}
+  .panel h2{font-size:14px;margin:0 0 12px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+  /* drop zone */
+  #drop{border:2px dashed #cbd5e1;border-radius:var(--radius);padding:30px 20px;text-align:center;
+    color:var(--muted);cursor:pointer;transition:.15s;background:#fafbfc}
+  #drop.drag{border-color:var(--accent);background:#eff6ff;color:var(--accent-dark)}
+  #drop strong{color:var(--ink)}
+  .btn{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line);background:#fff;
+    color:var(--ink);padding:8px 14px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;transition:.12s}
+  .btn:hover{background:#f9fafb}
+  .btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+  .btn.primary:hover{background:var(--accent-dark)}
+  .btn.danger{color:var(--bad);border-color:#fecaca}
+  .btn.danger:hover{background:var(--bad-bg)}
+  .btn:disabled{opacity:.5;cursor:not-allowed}
+  .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  .spacer{flex:1}
+  .note-warn{background:var(--warn-bg);border:1px solid #fde68a;color:#92400e;padding:9px 12px;
+    border-radius:8px;font-size:13px;margin-top:12px}
+  .filelist{margin-top:12px;font-size:13px;color:var(--muted);max-height:160px;overflow:auto}
+  .filelist div{padding:2px 0}
+  /* progress */
+  #progressWrap{display:none;margin-top:14px}
+  .bar{height:10px;background:var(--neutral-bg);border-radius:999px;overflow:hidden}
+  .bar > span{display:block;height:100%;width:0;background:var(--accent);transition:width .2s}
+  .progmeta{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-top:6px}
+  /* accuracy */
+  #acc{display:none}
+  .metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+  .metric{background:#fff;border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+  .metric .lbl{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+  .metric .val{font-size:26px;font-weight:700;letter-spacing:-.02em;margin-top:2px}
+  .metric .val small{font-size:13px;font-weight:600;color:var(--muted)}
+  .metric.big .val{font-size:30px}
+  .metric.good .val{color:var(--ok)} .metric.bad .val{color:var(--bad)}
+  .fieldbars{margin-top:14px;display:grid;gap:8px}
+  .fieldbar{display:grid;grid-template-columns:130px 1fr 70px;gap:10px;align-items:center;font-size:13px}
+  .fieldbar .track{height:8px;background:var(--neutral-bg);border-radius:999px;overflow:hidden}
+  .fieldbar .track > span{display:block;height:100%;background:var(--ok)}
+  .fieldbar.haserr .track > span{background:var(--bad)}
+  /* main two-column */
+  #review{display:none;grid-template-columns:300px 1fr;gap:18px;align-items:start}
+  .list{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+    box-shadow:var(--shadow);overflow:hidden;max-height:78vh;overflow-y:auto}
+  .li{display:flex;align-items:center;gap:9px;padding:9px 12px;border-bottom:1px solid var(--line);
+    cursor:pointer;font-size:13px}
+  .li:hover{background:#f9fafb}
+  .li.sel{background:#eff6ff}
+  .li .ico{width:18px;height:18px;border-radius:50%;flex:none;display:grid;place-items:center;
+    font-size:11px;color:#fff;background:#9ca3af}
+  .li.s-booked .ico{background:var(--accent)}
+  .li.s-error .ico{background:var(--bad)}
+  .li.r-ok .ico{background:var(--ok)}
+  .li.r-bad .ico{background:var(--bad)}
+  .li .nm{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .li .tag{font-size:10px;color:var(--muted)}
+  .detail{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+    box-shadow:var(--shadow);padding:0;overflow:hidden}
+  .detail .head{display:flex;justify-content:space-between;align-items:center;gap:12px;
+    padding:14px 18px;border-bottom:1px solid var(--line)}
+  .detail .head h3{margin:0;font-size:15px}
+  .detail .body{display:grid;grid-template-columns:1fr 1fr;gap:0}
+  .pdfcol{border-right:1px solid var(--line);min-height:420px;background:#f1f3f5}
+  .pdfcol iframe{width:100%;height:560px;border:0;display:block}
+  .pdfcol .nopdf{padding:40px;text-align:center;color:var(--muted)}
+  .infocol{padding:16px 18px}
+  .kv{display:grid;grid-template-columns:120px 1fr;gap:4px 10px;font-size:13px;margin-bottom:14px}
+  .kv dt{color:var(--muted)} .kv dd{margin:0;font-weight:600}
+  .badge{display:inline-block;font-size:11px;padding:1px 7px;border-radius:999px;font-weight:600}
+  .badge.new{background:var(--warn-bg);color:var(--warn)}
+  .badge.exist{background:var(--neutral-bg);color:var(--muted)}
+  table.lines{width:100%;border-collapse:collapse;font-size:12.5px;margin-bottom:8px}
+  table.lines th{text-align:left;color:var(--muted);font-weight:600;border-bottom:1px solid var(--line);padding:5px 6px}
+  table.lines td{padding:5px 6px;border-bottom:1px solid #f1f3f5;vertical-align:top}
+  table.lines td.r{text-align:right;white-space:nowrap}
+  .gb{font-weight:600}
+  .mismatch{color:var(--bad)}
+  .conf{display:inline-block;font-size:10px;font-weight:700;padding:1px 6px;border-radius:999px;white-space:nowrap}
+  .conf.hi{background:var(--ok-bg);color:var(--ok)}
+  .conf.mid{background:var(--warn-bg);color:var(--warn)}
+  .conf.lo{background:var(--bad-bg);color:var(--bad)}
+  .gbcell{display:flex;flex-direction:column;gap:3px}
+  .gbfix{font:inherit;font-size:11px;padding:2px 4px;border:1px solid var(--line);border-radius:6px;max-width:200px}
+  .gbreason{font-size:11px;color:var(--muted)}
+  .doubtbar{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);
+    padding:8px 4px;cursor:pointer}
+  .li .warn{color:var(--warn);font-weight:700}
+  /* review controls */
+  .reviewbox{padding:14px 18px;border-top:1px solid var(--line);background:#fcfcfd}
+  .reviewbox h4{margin:0 0 10px;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+  .chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+  .chip{display:flex;align-items:center;gap:7px;border:1px solid var(--line);background:#fff;
+    padding:7px 12px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;user-select:none}
+  .chip .mark{width:18px;height:18px;border-radius:5px;display:grid;place-items:center;font-size:12px;
+    background:var(--ok-bg);color:var(--ok)}
+  .chip.bad{border-color:#fecaca;background:var(--bad-bg)}
+  .chip.bad .mark{background:#fff;color:var(--bad)}
+  .chip.untouched{opacity:.78}
+  textarea.note{width:100%;min-height:48px;border:1px solid var(--line);border-radius:8px;
+    padding:8px 10px;font:inherit;resize:vertical}
+  .reviewactions{display:flex;gap:10px;align-items:center;margin-top:12px}
+  .hint{font-size:12px;color:var(--muted)}
+  kbd{background:#fff;border:1px solid var(--line);border-bottom-width:2px;border-radius:5px;
+    padding:0 5px;font-size:11px;font-family:inherit}
+  .empty{padding:60px 20px;text-align:center;color:var(--muted)}
+  .toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:#111827;color:#fff;
+    padding:9px 16px;border-radius:8px;font-size:13px;opacity:0;pointer-events:none;transition:.2s;z-index:50}
+  .toast.show{opacity:1}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <h1>AdminBoeker · Sandbox</h1>
+    <span id="provPill" class="pill"><span class="dot"></span><span id="provText">verbinden…</span></span>
+  </header>
+  <p class="sub">Gooi een stapel facturen erin, ze worden één voor één <strong>echt geboekt</strong>,
+    en daarna loop je ze na om te meten hoe vaak het klopt. Doel: 95%.</p>
+
+  <!-- SETUP -->
+  <section class="panel" id="setup">
+    <h2>1 · Facturen kiezen</h2>
+    <div id="drop">
+      <p style="margin:0 0 6px"><strong>Sleep PDF-facturen hierheen</strong> of klik om te kiezen</p>
+      <p style="margin:0;font-size:12px">Meerdere tegelijk · alleen .pdf · begin gerust met 50</p>
+      <input type="file" id="fileInput" accept="application/pdf" multiple hidden>
+    </div>
+    <div class="filelist" id="fileList"></div>
+    <div class="note-warn" id="bookWarn">
+      Let op: deze facturen worden <strong>echt geboekt</strong> in je test-administratie
+      (<span id="adminName">test</span>). Achteraf kun je ze met één klik weer opruimen.
+    </div>
+    <div class="row" style="margin-top:14px">
+      <button class="btn primary" id="startBtn" disabled>Start — boek <span id="cnt">0</span> facturen</button>
+      <button class="btn" id="clearBtn" disabled>Wissen</button>
+      <div class="spacer"></div>
+      <span class="hint">Provider:&nbsp;</span>
+      <select id="provSelect" class="btn" style="font-weight:600"></select>
+    </div>
+    <div id="progressWrap">
+      <div class="bar"><span id="barFill"></span></div>
+      <div class="progmeta"><span id="progText">Bezig…</span><span id="progPct">0%</span></div>
+    </div>
+  </section>
+
+  <!-- ACCURACY -->
+  <section class="panel" id="acc">
+    <h2>Accuracy <span id="accReady" style="text-transform:none;letter-spacing:0;font-weight:400"></span></h2>
+    <div class="metrics">
+      <div class="metric big" id="mAcc"><div class="lbl">Accuracy (nagekeken)</div><div class="val">–</div></div>
+      <div class="metric" id="mReviewed"><div class="lbl">Nagekeken</div><div class="val">–</div></div>
+      <div class="metric" id="mBooked"><div class="lbl">Geboekt</div><div class="val">–</div></div>
+      <div class="metric" id="mError"><div class="lbl">Niet geboekt</div><div class="val">–</div></div>
+    </div>
+    <div class="fieldbars" id="fieldBars"></div>
+    <div class="row" style="margin-top:16px">
+      <button class="btn" id="exportBtn">Exporteer rapport (JSON)</button>
+      <button class="btn danger" id="cleanupBtn">Opruimen — verwijder geboekte testfacturen</button>
+      <div class="spacer"></div>
+      <span class="hint" id="saveState"></span>
+    </div>
+  </section>
+
+  <!-- REVIEW -->
+  <div id="review">
+    <div>
+      <label class="doubtbar"><input type="checkbox" id="onlyDoubt"> Alleen twijfelgevallen tonen <span id="doubtCount"></span></label>
+      <div class="list" id="list"></div>
+    </div>
+    <div class="detail" id="detail">
+      <div class="empty">Selecteer links een factuur om na te kijken.</div>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+"use strict";
+const $ = s => document.querySelector(s);
+const fmtEur = n => (n==null||n==='')?'–':('€ '+Number(n).toLocaleString('nl-NL',{minimumFractionDigits:2,maximumFractionDigits:2}));
+const esc = s => (s==null?'':String(s)).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const FIELDS = [
+  {key:'leverancier', label:'Leverancier'},
+  {key:'bedragen',    label:'Bedragen'},
+  {key:'btw',         label:'BTW'},
+  {key:'grootboek',   label:'Grootboek'},
+];
+
+let PROVIDER = 'rompslomp';
+let LEDGERS = [];
+function confClass(c){ return c==null?'mid':(c>=0.7?'hi':(c>=0.5?'mid':'lo')); }
+function confPct(c){ return c==null?'?':Math.round(c*100)+'%'; }
+let runId = 'run_' + new Date().toISOString().replace(/[^0-9]/g,'').slice(0,14);
+let items = [];          // {name, file, booked, error, status, review, reviewed, pdfUrl}
+let selected = -1;
+let saveTimer = null;
+
+function toast(msg){ const t=$('#toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove('show'),1800); }
+
+/* ---------- provider / health ---------- */
+async function initProvider(){
+  try{
+    const r = await fetch('/api/providers'); const j = await r.json();
+    const provs = j.providers || [];
+    const sel = $('#provSelect'); sel.innerHTML='';
+    provs.forEach(p=>{ const o=document.createElement('option'); o.value=p.name||p; o.textContent=p.display_name||p.name||p; sel.appendChild(o); });
+    if(provs.find(p=>(p.name||p)==='rompslomp')) sel.value='rompslomp';
+    PROVIDER = sel.value || 'rompslomp';
+    sel.addEventListener('change',()=>{ PROVIDER=sel.value; refreshHealth(); });
+  }catch(e){ /* lijst optioneel */ }
+  refreshHealth();
+}
+async function refreshHealth(){
+  try{
+    await fetch('/api/providers',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:PROVIDER})});
+    const r = await fetch('/api/health'); const h = await r.json();
+    const ok = h.ok!==false;
+    $('#provPill').classList.toggle('live',ok);
+    const naam = h.administration_name || h.administration_id || PROVIDER;
+    $('#provText').textContent = (h.provider||PROVIDER) + (ok? ' · '+naam : ' · niet verbonden');
+    $('#adminName').textContent = naam;
+  }catch(e){ $('#provText').textContent = PROVIDER+' · onbekend'; }
+  loadLedgers();
+}
+async function loadLedgers(){
+  try{ const r=await fetch('/api/ledgers?provider='+encodeURIComponent(PROVIDER)); const j=await r.json();
+    if(j.ok) LEDGERS=j.ledgers||[];
+  }catch(e){}
+}
+
+/* ---------- file selection ---------- */
+const drop = $('#drop'), fileInput = $('#fileInput');
+drop.addEventListener('click',()=>fileInput.click());
+['dragenter','dragover'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.add('drag');}));
+['dragleave','drop'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.remove('drag');}));
+drop.addEventListener('drop',e=>addFiles(e.dataTransfer.files));
+fileInput.addEventListener('change',()=>addFiles(fileInput.files));
+
+function addFiles(fileObjs){
+  let added=0;
+  [...fileObjs].forEach(f=>{
+    if(!f.name.toLowerCase().endsWith('.pdf')) return;
+    if(items.find(it=>it.name===f.name && it.status==='pending' && it.file)) return;
+    items.push({name:f.name, file:f, booked:null, error:null, status:'pending',
+      review:newReview(), reviewed:false, pdfUrl:null});
+    added++;
+  });
+  if(added) toast(added+' factu'+(added===1?'ur':'ren')+' toegevoegd');
+  renderFileList();
+}
+function newReview(){ return {leverancier:true,bedragen:true,btw:true,grootboek:true,note:''}; }
+function pendingCount(){ return items.filter(i=>i.status==='pending').length; }
+
+function renderFileList(){
+  const pend = items.filter(i=>i.status==='pending');
+  $('#fileList').innerHTML = pend.map(i=>'<div>• '+esc(i.name)+'</div>').join('');
+  $('#cnt').textContent = pend.length;
+  $('#startBtn').disabled = pend.length===0;
+  $('#clearBtn').disabled = pend.length===0;
+}
+$('#clearBtn').addEventListener('click',()=>{ items=items.filter(i=>i.status!=='pending'); renderFileList(); });
+
+/* ---------- booking ---------- */
+$('#startBtn').addEventListener('click', startBooking);
+async function startBooking(){
+  const todo = items.filter(i=>i.status==='pending');
+  if(!todo.length) return;
+  $('#startBtn').disabled=true; $('#clearBtn').disabled=true; fileInput.disabled=true;
+  $('#progressWrap').style.display='block';
+  $('#acc').style.display='block'; $('#review').style.display='grid';
+  let done=0;
+  for(const it of todo){
+    $('#progText').textContent = 'Boeken: '+it.name+'  ('+(done+1)+'/'+todo.length+')';
+    try{
+      const fd = new FormData();
+      fd.append('file', it.file, it.name);
+      fd.append('type','inkoop');
+      fd.append('provider', PROVIDER);
+      fd.append('notify','false');  // geen mails tijdens batch-testen
+      fd.append('inbox','false');   // testboekingen niet in het postvak
+      const r = await fetch('/api/book',{method:'POST',body:fd});
+      const j = await r.json();
+      if(j.ok){ it.booked=j; it.status='booked';
+        try{ it.pdfUrl = URL.createObjectURL(it.file); }catch(e){}
+      } else { it.error = j.error || ('fout in fase '+(j.stage||'?')); it.status='error'; }
+    }catch(e){ it.error = String(e); it.status='error'; }
+    done++;
+    const pct = Math.round(done/todo.length*100);
+    $('#barFill').style.width=pct+'%'; $('#progPct').textContent=pct+'%';
+    renderList(); recompute(); scheduleSave();
+    if(selected<0 && it.status==='booked'){ select(items.indexOf(it)); }
+  }
+  $('#progText').textContent = 'Klaar: '+todo.length+' verwerkt.';
+  fileInput.disabled=false; renderFileList();
+  // selecteer eerste nog niet nagekeken
+  const firstUn = items.findIndex(i=>i.status==='booked' && !i.reviewed);
+  if(firstUn>=0) select(firstUn);
+  saveNow();
+}
+
+/* ---------- result list ---------- */
+function isDoubt(it){ return it.status==='booked' && it.booked && it.booked.boeking && it.booked.boeking.needs_review; }
+function renderList(){
+  const onlyDoubt = $('#onlyDoubt') && $('#onlyDoubt').checked;
+  let booked = items.filter(i=>i.status!=='pending');
+  const doubtN = booked.filter(isDoubt).length;
+  if($('#doubtCount')) $('#doubtCount').textContent = doubtN? '('+doubtN+')':'';
+  if(onlyDoubt) booked = booked.filter(isDoubt);
+  $('#list').innerHTML = booked.map(it=>{
+    const idx = items.indexOf(it);
+    let cls='', ico='', tag='';
+    if(it.status==='error'){ cls='s-error'; ico='!'; tag='niet geboekt'; }
+    else if(it.reviewed){
+      const allok = FIELDS.every(f=>it.review[f.key]!==false);
+      cls = allok?'r-ok':'r-bad'; ico = allok?'✓':'✗'; tag = allok?'klopt':'fout';
+    } else { cls='s-booked'; ico='•'; tag='te beoordelen'; }
+    const warn = isDoubt(it)? ' <span class="warn" title="AI was niet zeker">⚠</span>':'';
+    return '<div class="li '+cls+(idx===selected?' sel':'')+'" data-i="'+idx+'">'
+      + '<span class="ico">'+ico+'</span>'
+      + '<span class="nm">'+esc(it.name)+warn+'</span>'
+      + '<span class="tag">'+tag+'</span></div>';
+  }).join('');
+  $('#list').querySelectorAll('.li').forEach(el=>el.addEventListener('click',()=>select(+el.dataset.i)));
+}
+
+/* ---------- detail + review ---------- */
+function select(i){
+  selected=i; renderList();
+  const it=items[i]; if(!it){ return; }
+  const d=$('#detail');
+  if(it.status==='error'){
+    d.innerHTML = '<div class="head"><h3>'+esc(it.name)+'</h3></div>'
+      + '<div style="padding:24px"><div class="note-warn">Boeken mislukt: '+esc(it.error)+'</div>'
+      + '<p class="hint" style="margin-top:12px">Deze telt als <strong>niet geboekt</strong>. '
+      + 'Je kunt de PDF apart bekijken en de oorzaak in de parser/boekflow nakijken.</p></div>';
+    return;
+  }
+  const b=it.booked, bk=b.boeking||{}, p=b.parsed||{};
+  const contact = bk.contact||{};
+  const regels = bk.regels||[];
+  const newBadge = contact.nieuw_aangemaakt
+    ? '<span class="badge new">nieuw aangemaakt</span>'
+    : '<span class="badge exist">bestaand contact</span>';
+  const subtotaal = regels.reduce((s,r)=>s+(Number(r.prijs_per_stuk)||0)*(Number(r.aantal)||1),0);
+  const pdf = it.pdfUrl
+    ? '<iframe src="'+it.pdfUrl+'#toolbar=0"></iframe>'
+    : (b.pdf_name||it.name ? '<iframe src="/api/sandbox/pdf/'+encodeURIComponent(it.pdf_name||it.name)+'#toolbar=0"></iframe>'
+       : '<div class="nopdf">Geen PDF-preview beschikbaar.</div>');
+
+  const lines = regels.map(r=>{
+    const g = (r.btw_pct_gevraagd==null?'–':r.btw_pct_gevraagd+'%');
+    const bp = (r.btw_pct_geboekt==null?'vrijgesteld':r.btw_pct_geboekt+'%');
+    const mis = (r.btw_pct_gevraagd!=null && r.btw_pct_geboekt!=null && Math.abs(r.btw_pct_gevraagd-r.btw_pct_geboekt)>0.5);
+    const opts = LEDGERS.map(l=>'<option value="'+l.id+'" data-name="'+esc(l.name)+'"'
+      +(String(l.id)===String(r.grootboek_id)?' selected':'')+'>'+esc(l.path||l.name)+'</option>').join('');
+    return '<tr><td>'+esc(r.omschrijving)+'</td>'
+      +'<td class="r">'+esc(r.aantal)+'×</td>'
+      +'<td class="r">'+fmtEur(r.prijs_per_stuk)+'</td>'
+      +'<td class="r '+(mis?'mismatch':'')+'">'+g+'→'+bp+'</td>'
+      +'<td class="gb"><div class="gbcell">'
+        +'<div>'+esc(r.grootboek_naam||'–')+' <span class="conf '+confClass(r.zekerheid)+'">'+confPct(r.zekerheid)+'</span></div>'
+        +(LEDGERS.length?'<select class="gbfix" data-om="'+esc(r.omschrijving)+'" title="Kies de juiste rekening; AdminBoeker onthoudt het">'+opts+'</select>':'')
+        +(r.zekerheid_reden?'<div class="gbreason">'+esc(r.zekerheid_reden)+'</div>':'')
+      +'</div></td></tr>';
+  }).join('');
+
+  const url = b.moneybird_url||'#';
+  const headConf = (bk.min_zekerheid!=null)?' <span class="conf '+confClass(bk.min_zekerheid)+'">zekerheid '+confPct(bk.min_zekerheid)+'</span>':'';
+  d.innerHTML =
+    '<div class="head"><h3>'+esc(it.name)+headConf+'</h3>'
+    + '<a class="btn" href="'+esc(url)+'" target="_blank" rel="noopener">Bekijk in Rompslomp (Uitgaven) ↗</a></div>'
+    + '<div class="body">'
+    +   '<div class="pdfcol">'+pdf+'</div>'
+    +   '<div class="infocol">'
+    +     '<dl class="kv">'
+    +       '<dt>Leverancier</dt><dd>'+esc(contact.naam||b.contact_naam||'–')+' '+newBadge+'</dd>'
+    +       '<dt>Factuurnr.</dt><dd>'+esc(b.factuurnummer||p.factuurnummer||'–')+'</dd>'
+    +       '<dt>Datum</dt><dd>'+esc(b.datum||p.datum||'–')+'</dd>'
+    +       '<dt>Subtotaal</dt><dd>'+fmtEur(subtotaal)+'</dd>'
+    +       '<dt>Totaal incl.</dt><dd>'+fmtEur(b.totaal_incl_btw!=null?b.totaal_incl_btw:bk.totaal_incl_btw)+'</dd>'
+    +     '</dl>'
+    +     '<table class="lines"><thead><tr><th>Omschrijving</th><th class="r">Aantal</th>'
+    +       '<th class="r">Prijs</th><th class="r">BTW</th><th>Grootboek</th></tr></thead>'
+    +       '<tbody>'+lines+'</tbody></table>'
+    +     (bk.fallback_btw_gebruikt?'<p class="hint mismatch">⚠ BTW-fallback gebruikt (geen exact tarief in Rompslomp).</p>':'')
+    +   '</div>'
+    + '</div>'
+    + reviewBoxHtml(it);
+  bindReview(i);
+}
+
+function reviewBoxHtml(it){
+  const chips = FIELDS.map(f=>{
+    const val = it.review[f.key];
+    const bad = val===false;
+    const cls = 'chip'+(bad?' bad':'')+(it.reviewed?'':' untouched');
+    const mark = bad?'✗':'✓';
+    return '<div class="'+cls+'" data-f="'+f.key+'"><span class="mark">'+mark+'</span>'+f.label+'</div>';
+  }).join('');
+  return '<div class="reviewbox">'
+    + '<h4>Klopt de boeking?</h4>'
+    + '<div class="chips">'+chips+'</div>'
+    + '<textarea class="note" id="noteBox" placeholder="Notitie (optioneel) — bv. wat er misging">'+esc(it.review.note||'')+'</textarea>'
+    + '<div class="reviewactions">'
+    +   '<button class="btn primary" id="okBtn">Klopt allemaal — volgende</button>'
+    +   '<button class="btn" id="nextBtn">Overslaan →</button>'
+    +   '<span class="hint">Sneltoetsen: <kbd>1-4</kbd> veld fout · <kbd>Enter</kbd> klopt+volgende · <kbd>←/→</kbd> bladeren</span>'
+    + '</div></div>';
+}
+
+function bindReview(i){
+  const it=items[i];
+  $('#detail').querySelectorAll('.chip').forEach(ch=>ch.addEventListener('click',()=>{
+    const k=ch.dataset.f; it.review[k] = !(it.review[k]===false) ? false : true; // toggle true<->false
+    it.reviewed=true; select(i); recompute(); scheduleSave();
+  }));
+  $('#detail').querySelectorAll('.gbfix').forEach(sel=>sel.addEventListener('change',async()=>{
+    const opt=sel.options[sel.selectedIndex];
+    const account_id=Number(sel.value), account_name=opt.getAttribute('data-name');
+    const omschrijving=sel.getAttribute('data-om');
+    const lev=((it.booked.boeking||{}).contact||{}).naam||it.booked.contact_naam||'';
+    it.review.grootboek=false; it.reviewed=true;  // corrigeren = grootboek was fout
+    try{ await fetch('/api/sandbox/correct',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({omschrijving,leverancier:lev,account_id,account_name})});
+      toast('Onthouden: "'+omschrijving.slice(0,24)+'" → '+account_name);
+    }catch(e){ toast('Opslaan correctie mislukt'); }
+    renderList(); recompute(); scheduleSave();
+  }));
+  const note=$('#noteBox'); if(note) note.addEventListener('input',()=>{ it.review.note=note.value; scheduleSave(); });
+  $('#okBtn').addEventListener('click',()=>{ FIELDS.forEach(f=>it.review[f.key]=true); it.reviewed=true; recompute(); scheduleSave(); gotoNextUnreviewed(i); });
+  $('#nextBtn').addEventListener('click',()=>gotoNext(i));
+}
+function gotoNext(i){ const b=items.map((x,ix)=>ix).filter(ix=>items[ix].status!=='pending'); const pos=b.indexOf(i); if(pos>=0&&pos<b.length-1) select(b[pos+1]); }
+function gotoPrev(i){ const b=items.map((x,ix)=>ix).filter(ix=>items[ix].status!=='pending'); const pos=b.indexOf(i); if(pos>0) select(b[pos-1]); }
+function gotoNextUnreviewed(i){ const un=items.findIndex((x,ix)=>ix>i && x.status==='booked' && !x.reviewed);
+  if(un>=0){ select(un); } else { const any=items.findIndex(x=>x.status==='booked'&&!x.reviewed); if(any>=0) select(any); else gotoNext(i); } }
+
+document.addEventListener('keydown',e=>{
+  if(selected<0) return;
+  if(['INPUT','TEXTAREA','SELECT'].includes(document.activeElement.tagName)) return;
+  const it=items[selected]; if(!it||it.status!=='booked') { if(e.key==='ArrowRight')gotoNext(selected); if(e.key==='ArrowLeft')gotoPrev(selected); return; }
+  if(e.key==='Enter'){ e.preventDefault(); FIELDS.forEach(f=>it.review[f.key]=true); it.reviewed=true; recompute(); scheduleSave(); gotoNextUnreviewed(selected); }
+  else if(e.key==='ArrowRight'){ gotoNext(selected); }
+  else if(e.key==='ArrowLeft'){ gotoPrev(selected); }
+  else if(['1','2','3','4'].includes(e.key)){ const f=FIELDS[+e.key-1]; it.review[f.key]=!(it.review[f.key]===false)?false:true; it.reviewed=true; select(selected); recompute(); scheduleSave(); }
+});
+
+/* ---------- accuracy ---------- */
+function recompute(){
+  const booked = items.filter(i=>i.status==='booked');
+  const errors = items.filter(i=>i.status==='error');
+  const reviewed = booked.filter(i=>i.reviewed);
+  const correct = reviewed.filter(i=>FIELDS.every(f=>i.review[f.key]!==false));
+  const accPct = reviewed.length? (correct.length/reviewed.length*100):null;
+  const m=$('#mAcc'); m.classList.remove('good','bad');
+  m.querySelector('.val').innerHTML = accPct==null?'–':(accPct.toFixed(1)+'<small>%</small>');
+  if(accPct!=null) m.classList.add(accPct>=95?'good':'bad');
+  $('#mReviewed').querySelector('.val').innerHTML = reviewed.length+'<small>/'+booked.length+'</small>';
+  $('#mBooked').querySelector('.val').textContent = booked.length;
+  $('#mError').querySelector('.val').textContent = errors.length;
+  $('#accReady').textContent = accPct==null?'(nog niets nagekeken)':(correct.length+' van '+reviewed.length+' volledig correct'+(accPct>=95?' — doel gehaald ✓':''));
+  // per-veld
+  $('#fieldBars').innerHTML = FIELDS.map(f=>{
+    const fout = reviewed.filter(i=>i.review[f.key]===false).length;
+    const okPct = reviewed.length? ((reviewed.length-fout)/reviewed.length*100):100;
+    return '<div class="fieldbar'+(fout?' haserr':'')+'"><span>'+f.label+'</span>'
+      + '<span class="track"><span style="width:'+okPct.toFixed(0)+'%"></span></span>'
+      + '<span style="text-align:right;color:var(--muted)">'+(reviewed.length?okPct.toFixed(0)+'%':'–')+(fout?' ('+fout+' fout)':'')+'</span></div>';
+  }).join('');
+}
+
+/* ---------- persistence ---------- */
+function serialize(){
+  return { run_id:runId, provider:PROVIDER, naam:'Sandbox '+runId,
+    results: items.filter(i=>i.status!=='pending').map(i=>({
+      name:i.name, status:i.status, error:i.error, reviewed:i.reviewed, review:i.review,
+      pdf_name:i.name,
+      booked: i.booked? {
+        moneybird_id:i.booked.moneybird_id, moneybird_url:i.booked.moneybird_url,
+        contact_naam:i.booked.contact_naam, factuurnummer:i.booked.factuurnummer,
+        datum:i.booked.datum, totaal_incl_btw:i.booked.totaal_incl_btw,
+        boeking:i.booked.boeking, parsed:i.booked.parsed
+      }:null
+    }))
+  };
+}
+function scheduleSave(){ clearTimeout(saveTimer); saveTimer=setTimeout(saveNow,800); $('#saveState').textContent='opslaan…'; }
+async function saveNow(){
+  try{ const r=await fetch('/api/sandbox/save',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(serialize())});
+    const j=await r.json(); $('#saveState').textContent = j.ok? ('opgeslagen · '+runId) : 'opslaan mislukt';
+  }catch(e){ $('#saveState').textContent='opslaan mislukt'; }
+}
+
+/* ---------- export + cleanup ---------- */
+$('#exportBtn').addEventListener('click',()=>{
+  const data=serialize();
+  const reviewed = items.filter(i=>i.status==='booked'&&i.reviewed);
+  const correct = reviewed.filter(i=>FIELDS.every(f=>i.review[f.key]!==false));
+  data.samenvatting = { geboekt: items.filter(i=>i.status==='booked').length,
+    niet_geboekt: items.filter(i=>i.status==='error').length,
+    nagekeken: reviewed.length, volledig_correct: correct.length,
+    accuracy_pct: reviewed.length? +(correct.length/reviewed.length*100).toFixed(1):null };
+  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=runId+'_rapport.json'; a.click();
+});
+
+$('#cleanupBtn').addEventListener('click',async()=>{
+  const ids = items.filter(i=>i.status==='booked'&&i.booked&&i.booked.moneybird_id).map(i=>i.booked.moneybird_id);
+  if(!ids.length){ toast('Niets om op te ruimen'); return; }
+  if(!confirm('Weet je het zeker? '+ids.length+' geboekte testfacturen worden uit '+PROVIDER+' verwijderd.')) return;
+  $('#cleanupBtn').disabled=true; $('#cleanupBtn').textContent='Opruimen…';
+  try{
+    const r=await fetch('/api/sandbox/cleanup',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({ids,provider:PROVIDER})});
+    const j=await r.json();
+    if(j.ok){ toast(j.aantal_verwijderd+' verwijderd'+(j.mislukt&&j.mislukt.length?', '+j.mislukt.length+' mislukt':''));
+      const gone=new Set(j.verwijderd.map(String));
+      items.forEach(i=>{ if(i.booked&&gone.has(String(i.booked.moneybird_id))){ i.status='error'; i.error='verwijderd (opgeruimd)'; }});
+      renderList(); recompute(); saveNow();
+    } else { alert('Opruimen mislukt: '+(j.error||'')); }
+  }catch(e){ alert('Opruimen mislukt: '+e); }
+  $('#cleanupBtn').disabled=false; $('#cleanupBtn').textContent='Opruimen — verwijder geboekte testfacturen';
+});
+
+/* ---------- load existing run if ?run= ---------- */
+async function maybeLoad(){
+  const q=new URLSearchParams(location.search); const rid=q.get('run'); if(!rid) return;
+  try{ const r=await fetch('/api/sandbox/load/'+encodeURIComponent(rid)); const j=await r.json();
+    if(j.ok&&j.run){ runId=j.run.run_id; PROVIDER=j.run.provider||PROVIDER;
+      items = (j.run.results||[]).map(res=>({ name:res.name, file:null, booked:res.booked,
+        error:res.error, status:res.status, review:res.review||newReview(), reviewed:!!res.reviewed,
+        pdfUrl:null }));
+      $('#acc').style.display='block'; $('#review').style.display='grid';
+      renderList(); recompute(); const f=items.findIndex(i=>i.status==='booked'); if(f>=0) select(f);
+      toast('Run geladen: '+runId);
+    }
+  }catch(e){}
+}
+
+const _od=$('#onlyDoubt'); if(_od) _od.addEventListener('change',renderList);
+initProvider(); maybeLoad();
+</script>
+</body>
+</html>

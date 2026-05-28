@@ -1,0 +1,23 @@
+{
+  "factuurnummer": "INV-2026-006",
+  "datum": "2026-02-18",
+  "vervaldatum": "2026-03-04",
+  "valuta": "EUR",
+  "betaaltermijn_dagen": 14,
+  "leverancier": {
+    "company_name": "Tankstation Shell A12",
+    "address1": "A12 Highway km 22",
+    "zipcode": "3540 AA",
+    "city": "Utrecht",
+    "country": "NL"
+  },
+  "klant": "Cyflux",
+  "regels": [
+    {
+      "omschrijving": "Brandstof Euro95",
+      "aantal": 1,
+      "prijs_per_stuk": 67.4,
+      "btw_percentage": 21
+    }
+  ]
+}

@@ -1,0 +1,26 @@
+{
+  "leverancier": {
+    "company_name": "Coach & Training Anna de Vries",
+    "address1": "Berkenlaan 3",
+    "zipcode": "3702 ER",
+    "city": "Zeist",
+    "country": "NL",
+    "chamber_of_commerce": "55556666"
+  },
+  "factuurnummer": "INV-2026-008",
+  "datum": "2026-02-04",
+  "vervaldatum": "2026-02-18",
+  "valuta": "EUR",
+  "prijzen_incl_btw": false,
+  "regels": [
+    {
+      "omschrijving": "Coachingssessie 1.5u",
+      "aantal": 1,
+      "prijs_per_stuk": 175.00,
+      "btw_percentage": 0
+    }
+  ],
+  "totaal_excl_btw": 175.00,
+  "btw_bedrag": 0.00,
+  "totaal_incl_btw": 175.00
+}

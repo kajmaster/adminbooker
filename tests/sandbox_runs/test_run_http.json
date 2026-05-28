@@ -1,0 +1,23 @@
+{
+  "run_id": "test_run_http",
+  "provider": "rompslomp",
+  "results": [
+    {
+      "name": "factuur_07.pdf",
+      "status": "booked",
+      "reviewed": true,
+      "review": {
+        "leverancier": true,
+        "bedragen": true,
+        "btw": true,
+        "grootboek": true,
+        "note": ""
+      },
+      "booked": {
+        "moneybird_id": 1
+      }
+    }
+  ],
+  "created": "2026-05-22T15:35:11",
+  "updated": "2026-05-22T15:35:11"
+}

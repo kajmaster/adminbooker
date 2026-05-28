@@ -1,0 +1,27 @@
+{
+  "leverancier": {
+    "company_name": "Belgisch Drukwerk BVBA",
+    "address1": "Antwerpsesteenweg 250",
+    "zipcode": "2640",
+    "city": "Mortsel",
+    "country": "BE",
+    "tax_number": "BE0123456789",
+    "iban": "BE68539007547034"
+  },
+  "factuurnummer": "INV-2026-009",
+  "datum": "2026-01-28",
+  "vervaldatum": "2026-02-11",
+  "valuta": "EUR",
+  "prijzen_incl_btw": false,
+  "regels": [
+    {
+      "omschrijving": "Brochures full color 1000 stuks",
+      "aantal": 1,
+      "prijs_per_stuk": 425.00,
+      "btw_percentage": 0
+    }
+  ],
+  "totaal_excl_btw": 425.00,
+  "btw_bedrag": 0.00,
+  "totaal_incl_btw": 425.00
+}

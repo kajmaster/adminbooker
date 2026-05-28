@@ -1,0 +1,26 @@
+{
+  "leverancier": {
+    "company_name": "ACME Software Inc.",
+    "address1": "1 Market Street",
+    "zipcode": "94105",
+    "city": "San Francisco",
+    "country": "US",
+    "tax_number": "EU826000000"
+  },
+  "factuurnummer": "INV-2026-004",
+  "datum": "2026-03-04",
+  "vervaldatum": "2026-03-18",
+  "valuta": "EUR",
+  "prijzen_incl_btw": false,
+  "regels": [
+    {
+      "omschrijving": "SaaS subscription Pro - April 2026",
+      "aantal": 1,
+      "prijs_per_stuk": 79.00,
+      "btw_percentage": 21
+    }
+  ],
+  "totaal_excl_btw": 79.00,
+  "btw_bedrag": 16.59,
+  "totaal_incl_btw": 95.59
+}

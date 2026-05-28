@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AdminBoeker — Te controleren</title>
+<style>
+  :root{
+    --bg:#f5f6f8; --panel:#fff; --ink:#1d2433; --muted:#6b7280; --line:#e5e7eb;
+    --accent:#2563eb; --ok:#15803d; --ok-bg:#dcfce7; --warn:#b45309; --warn-bg:#fef3c7;
+    --bad:#b91c1c; --bad-bg:#fee2e2; --neutral-bg:#f3f4f6; --radius:10px;
+    --shadow:0 1px 3px rgba(16,24,40,.08),0 1px 2px rgba(16,24,40,.06);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+  a{color:var(--accent);text-decoration:none} a:hover{text-decoration:underline}
+  .wrap{max-width:1180px;margin:0 auto;padding:20px 22px 60px}
+  header.top{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:4px}
+  header.top h1{font-size:20px;margin:0}
+  .count{display:inline-flex;align-items:center;gap:7px;font-size:13px;font-weight:600;
+    padding:4px 11px;border-radius:999px;background:var(--warn-bg);color:var(--warn)}
+  .count.zero{background:var(--ok-bg);color:var(--ok)}
+  .sub{color:var(--muted);font-size:13px;margin:0 0 18px}
+  .grid{display:grid;grid-template-columns:330px 1fr;gap:18px;align-items:start}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow)}
+  .toolbar{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);padding:9px 12px}
+  .list{max-height:78vh;overflow-y:auto}
+  .li{display:flex;align-items:center;gap:10px;padding:10px 12px;border-top:1px solid var(--line);cursor:pointer}
+  .li:hover{background:#f9fafb} .li.sel{background:#eff6ff}
+  .li .ico{width:20px;height:20px;border-radius:50%;flex:none;display:grid;place-items:center;font-size:11px;color:#fff;background:var(--warn)}
+  .li.akkoord .ico{background:var(--ok)}
+  .li .body{flex:1;min-width:0}
+  .li .nm{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:600}
+  .li .meta{font-size:11px;color:var(--muted)}
+  .conf{display:inline-block;font-size:10px;font-weight:700;padding:1px 6px;border-radius:999px}
+  .conf.hi{background:var(--ok-bg);color:var(--ok)} .conf.mid{background:var(--warn-bg);color:var(--warn)} .conf.lo{background:var(--bad-bg);color:var(--bad)}
+  .detail{padding:0;overflow:hidden}
+  .dhead{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:14px 18px;border-bottom:1px solid var(--line)}
+  .dhead h3{margin:0;font-size:15px}
+  .dbody{padding:16px 18px}
+  .kv{display:grid;grid-template-columns:120px 1fr;gap:4px 10px;font-size:13px;margin-bottom:14px}
+  .kv dt{color:var(--muted)} .kv dd{margin:0;font-weight:600}
+  table.lines{width:100%;border-collapse:collapse;font-size:12.5px;margin-bottom:8px}
+  table.lines th{text-align:left;color:var(--muted);font-weight:600;border-bottom:1px solid var(--line);padding:5px 6px}
+  table.lines td{padding:6px 6px;border-bottom:1px solid #f1f3f5;vertical-align:top}
+  table.lines td.r{text-align:right;white-space:nowrap}
+  .gbcell{display:flex;flex-direction:column;gap:3px}
+  .gbfix{font:inherit;font-size:11px;padding:2px 4px;border:1px solid var(--line);border-radius:6px;max-width:230px}
+  .gbreason{font-size:11px;color:var(--muted)}
+  .btn{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line);background:#fff;color:var(--ink);
+    padding:8px 14px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer}
+  .btn:hover{background:#f9fafb}
+  .btn.primary{background:var(--ok);border-color:var(--ok);color:#fff} .btn.primary:hover{filter:brightness(.95)}
+  .btn:disabled{opacity:.5;cursor:not-allowed}
+  .empty{padding:60px 20px;text-align:center;color:var(--muted)}
+  .toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:#111827;color:#fff;
+    padding:9px 16px;border-radius:8px;font-size:13px;opacity:0;pointer-events:none;transition:.2s;z-index:50}
+  .toast.show{opacity:1}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <h1>Postvak · Te controleren</h1>
+    <span id="count" class="count">–</span>
+  </header>
+  <p class="sub">Geboekte facturen. De onzekere staan bovenaan — kijk ze na, kies zo nodig de juiste rekening (AdminBoeker onthoudt het) en zet ze op akkoord. <a href="/">← naar boeken</a></p>
+
+  <div class="grid">
+    <div class="panel">
+      <div class="toolbar"><label><input type="checkbox" id="onlyDoubt"> Alleen te controleren</label></div>
+      <div class="list" id="list"></div>
+    </div>
+    <div class="panel detail" id="detail"><div class="empty">Selecteer links een factuur.</div></div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+"use strict";
+const $=s=>document.querySelector(s);
+const esc=s=>(s==null?'':String(s)).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmtEur=n=>(n==null||n==='')?'–':('€ '+Number(n).toLocaleString('nl-NL',{minimumFractionDigits:2,maximumFractionDigits:2}));
+const confClass=c=>c==null?'mid':(c>=0.7?'hi':(c>=0.5?'mid':'lo'));
+const confPct=c=>c==null?'?':Math.round(c*100)+'%';
+let ITEMS=[], LEDGERS=[], selected=null, PROVIDER='rompslomp';
+function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('show');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),1800);}
+
+async function load(){
+  try{
+    const r=await fetch('/api/inbox'); const j=await r.json();
+    ITEMS=j.items||[];
+    const n=j.te_controleren||0;
+    const c=$('#count'); c.textContent = n? (n+' te controleren') : 'alles bijgewerkt';
+    c.classList.toggle('zero', n===0);
+    if(ITEMS[0] && ITEMS[0].provider) PROVIDER=ITEMS[0].provider;
+    loadLedgers();
+    renderList();
+  }catch(e){ $('#list').innerHTML='<div class="empty">Kon postvak niet laden.</div>'; }
+}
+async function loadLedgers(){
+  try{ const r=await fetch('/api/ledgers?provider='+encodeURIComponent(PROVIDER)); const j=await r.json(); if(j.ok) LEDGERS=j.ledgers||[]; }catch(e){}
+}
+function renderList(){
+  const only=$('#onlyDoubt').checked;
+  let arr=ITEMS.map((it,i)=>({it,i}));
+  if(only) arr=arr.filter(x=>x.it.status==='te_controleren');
+  // te controleren eerst
+  arr.sort((a,b)=>(a.it.status==='te_controleren'?0:1)-(b.it.status==='te_controleren'?0:1));
+  $('#list').innerHTML = arr.map(({it,i})=>{
+    const akk=it.status==='akkoord';
+    return '<div class="li '+(akk?'akkoord':'')+(i===selected?' sel':'')+'" data-i="'+i+'">'
+      +'<span class="ico">'+(akk?'✓':'!')+'</span>'
+      +'<div class="body"><div class="nm">'+esc(it.leverancier||it.bestand||'Factuur')+'</div>'
+      +'<div class="meta">'+esc(it.factuurnummer||'')+' · '+fmtEur(it.totaal_incl_btw)+'</div></div>'
+      +'<span class="conf '+confClass(it.min_zekerheid)+'">'+confPct(it.min_zekerheid)+'</span></div>';
+  }).join('') || '<div class="empty">Niets te tonen.</div>';
+  $('#list').querySelectorAll('.li').forEach(el=>el.addEventListener('click',()=>select(+el.dataset.i)));
+}
+function select(i){
+  selected=i; renderList();
+  const it=ITEMS[i]; if(!it) return;
+  const regels=it.regels||[];
+  const lines=regels.map(r=>{
+    const opts=LEDGERS.map(l=>'<option value="'+l.id+'" data-name="'+esc(l.name)+'"'+(String(l.id)===String(r.grootboek_id)?' selected':'')+'>'+esc(l.path||l.name)+'</option>').join('');
+    const btw=(r.btw_pct_geboekt==null?'vrij':r.btw_pct_geboekt+'%');
+    return '<tr><td>'+esc(r.omschrijving)+'</td><td class="r">'+esc(r.aantal)+'×</td>'
+      +'<td class="r">'+fmtEur(r.prijs_per_stuk)+'</td><td class="r">'+btw+'</td>'
+      +'<td><div class="gbcell"><div>'+esc(r.grootboek_naam||'–')+' <span class="conf '+confClass(r.zekerheid)+'">'+confPct(r.zekerheid)+'</span></div>'
+      +(LEDGERS.length?'<select class="gbfix" data-om="'+esc(r.omschrijving)+'">'+opts+'</select>':'')
+      +(r.zekerheid_reden?'<div class="gbreason">'+esc(r.zekerheid_reden)+'</div>':'')
+      +'</div></td></tr>';
+  }).join('');
+  const akk=it.status==='akkoord';
+  $('#detail').innerHTML=
+    '<div class="dhead"><h3>'+esc(it.leverancier||it.bestand||'Factuur')+'</h3>'
+    +(it.doc_url?'<a class="btn" href="'+esc(it.doc_url)+'" target="_blank" rel="noopener">Bekijk in '+esc(it.provider_display||'pakket')+' ↗</a>':'')+'</div>'
+    +'<div class="dbody">'
+    +'<dl class="kv"><dt>Factuurnr.</dt><dd>'+esc(it.factuurnummer||'–')+'</dd>'
+    +'<dt>Datum</dt><dd>'+esc(it.datum||'–')+'</dd>'
+    +'<dt>Totaal incl.</dt><dd>'+fmtEur(it.totaal_incl_btw)+'</dd>'
+    +'<dt>Bestand</dt><dd>'+esc(it.bestand||'–')+'</dd></dl>'
+    +'<table class="lines"><thead><tr><th>Omschrijving</th><th class="r">Aantal</th><th class="r">Prijs</th><th class="r">BTW</th><th>Grootboek</th></tr></thead><tbody>'+lines+'</tbody></table>'
+    +'<button class="btn primary" id="akkBtn"'+(akk?' disabled':'')+'>'+(akk?'✓ Op akkoord':'Markeer akkoord')+'</button>'
+    +'</div>';
+  $('#detail').querySelectorAll('.gbfix').forEach(sel=>sel.addEventListener('change',async()=>{
+    const opt=sel.options[sel.selectedIndex];
+    try{ await fetch('/api/sandbox/correct',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({omschrijving:sel.getAttribute('data-om'),leverancier:it.leverancier||'',account_id:Number(sel.value),account_name:opt.getAttribute('data-name')})});
+      toast('Onthouden: '+opt.getAttribute('data-name'));
+    }catch(e){ toast('Opslaan mislukt'); }
+  }));
+  const ab=$('#akkBtn'); if(ab&&!akk) ab.addEventListener('click',async()=>{
+    try{ await fetch('/api/inbox/akkoord',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:it.id})});
+      it.status='akkoord'; toast('Op akkoord'); load();
+    }catch(e){ toast('Mislukt'); }
+  });
+}
+$('#onlyDoubt').addEventListener('change',renderList);
+load();
+</script>
+</body>
+</html>

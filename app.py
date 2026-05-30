@@ -20,7 +20,6 @@ import traceback
 from pathlib import Path
 
 from flask import Flask, abort, jsonify, redirect, render_template, request, send_from_directory, session, url_for
-from werkzeug.security import check_password_hash
 
 from providers import get_provider, ProviderError, available_providers, set_active_provider
 from boek_agent import boek, boek_verkoop
@@ -43,70 +42,9 @@ app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
 
 
 # ---------- Login ----------
-# Eén ingelogde gebruiker per instance (pilot-model). Credentials uit .env.
-# Genereer een wachtwoordhash met:
-#   python -c "from werkzeug.security import generate_password_hash; print(generate_password_hash('jouwwachtwoord'))"
-_AUTH_USERNAME = os.environ.get("USERNAME") or "admin"
-_AUTH_HASH = os.environ.get("PASSWORD_HASH") or ""
-_AUTH_PLAIN = os.environ.get("PASSWORD") or ""  # fallback (alleen voor lokaal)
-
-# Pad-prefixen die zonder login bereikbaar zijn.
-_PUBLIC_PREFIXES = ("/login", "/static/", "/favicon.ico")
-
-
-def _auth_configured() -> bool:
-    return bool(_AUTH_HASH or _AUTH_PLAIN)
-
-
-def _check_credentials(username: str, password: str) -> bool:
-    if username != _AUTH_USERNAME:
-        return False
-    if _AUTH_HASH:
-        try:
-            return check_password_hash(_AUTH_HASH, password)
-        except Exception:
-            return False
-    if _AUTH_PLAIN:
-        return password == _AUTH_PLAIN
-    return False
-
-
-@app.before_request
-def _require_login():
-    path = request.path or "/"
-    if any(path == p or path.startswith(p) for p in _PUBLIC_PREFIXES):
-        return None
-    if not _auth_configured():
-        # Geen credentials geconfigureerd: zichtbaar foutscherm, geen toegang.
-        return ("Login niet ingesteld. Zet USERNAME en PASSWORD_HASH "
-                "(of PASSWORD) in je .env."), 503
-    if session.get("user") == _AUTH_USERNAME:
-        return None
-    if path.startswith("/api/"):
-        return jsonify({"ok": False, "error": "Niet ingelogd"}), 401
-    return redirect(url_for("login", next=path))
-
-
-@app.route("/login", methods=["GET", "POST"])
-def login():
-    fout = None
-    if request.method == "POST":
-        u = (request.form.get("username") or "").strip()
-        p = request.form.get("password") or ""
-        if _check_credentials(u, p):
-            session["user"] = _AUTH_USERNAME
-            nxt = request.args.get("next") or request.form.get("next") or "/"
-            if not nxt.startswith("/"):
-                nxt = "/"
-            return redirect(nxt)
-        fout = "Onjuiste gebruikersnaam of wachtwoord."
-    return render_template("login.html", fout=fout, nxt=request.args.get("next") or "/")
-
-
-@app.route("/logout")
-def logout():
-    session.clear()
-    return redirect(url_for("login"))
+# Login is bewust uitgeschakeld voor de pilot: de app is direct bruikbaar
+# zonder gebruikersnaam/wachtwoord. Bescherm de URL desgewenst op een andere
+# manier (geheime link / netwerkbeperking) als dat later nodig is.
 
 
 def _to_book_payload(parsed: dict) -> dict:

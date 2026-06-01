@@ -1,8 +1,8 @@
-"""
+﻿"""
 base.py - abstract interface voor een boekhoudpakket-koppeling.
 
 Elke concrete provider (Moneybird, Exact Online, Twinfield, etc.) implementeert
-deze methods. Zo werkt de rest van AdminBoeker hetzelfde, ongeacht het pakket.
+deze methods. Zo werkt de rest van AdminBooker hetzelfde, ongeacht het pakket.
 
 Conventie: methods die in een pakket niet bestaan moeten ProviderError raisen
 (geen NotImplementedError - dat zou een interne bug suggereren).
@@ -26,9 +26,9 @@ class ProviderError(RuntimeError):
 class AccountingProvider(ABC):
     """
     Interface voor een boekhoudpakket. Implementeer deze methods om
-    AdminBoeker met een nieuw pakket te laten praten.
+    AdminBooker met een nieuw pakket te laten praten.
 
-    De rest van AdminBoeker werkt alleen met dit type - nooit direct
+    De rest van AdminBooker werkt alleen met dit type - nooit direct
     met een specifieke API-client.
     """
 

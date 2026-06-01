@@ -57,6 +57,24 @@ def list_items() -> list:
     return _load()
 
 
+def is_duplicate(factuurnummer: str, leverancier: str = "") -> bool:
+    """Controleer of dit factuurnummer al eerder is ingeboekt.
+
+    Vergelijkt op factuurnummer + leverancier (genormaliseerd).
+    Zo voorkom je dubbele boekingen bij email-retries of handmatig opnieuw uploaden.
+    """
+    if not factuurnummer:
+        return False
+    fn = factuurnummer.strip().lower()
+    lv = (leverancier or "").strip().lower()
+    for rec in _load():
+        rec_fn = (rec.get("factuurnummer") or "").strip().lower()
+        rec_lv = (rec.get("leverancier") or "").strip().lower()
+        if rec_fn == fn and (not lv or not rec_lv or rec_lv == lv):
+            return True
+    return False
+
+
 def update(item_id: str, **velden) -> dict | None:
     items = _load()
     for rec in items:

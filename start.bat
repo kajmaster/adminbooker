@@ -1,10 +1,10 @@
-@echo off
-REM AdminBoeker Windows launcher.
+﻿@echo off
+REM AdminBooker Windows launcher.
 REM Dubbelklik dit bestand om de server te starten.
 
 echo.
 echo =========================================
-echo  AdminBoeker - starten
+echo  AdminBooker - starten
 echo =========================================
 echo.
 

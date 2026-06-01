@@ -1,9 +1,9 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="nl">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>AdminBoeker — inloggen</title>
+<title>AdminBooker — inloggen</title>
 <style>
   :root{ --ink:#1d2433; --muted:#6b7280; --line:#e5e7eb; --accent:#2563eb;
          --bad:#b91c1c; --bad-bg:#fee2e2; }
@@ -35,7 +35,7 @@
 <form class="card" method="post" action="/login">
   <div class="brand">
     <div class="logo">A</div>
-    <div><h1>AdminBoeker</h1><p class="tag">Inloggen om door te gaan</p></div>
+    <div><h1>AdminBooker</h1><p class="tag">Inloggen om door te gaan</p></div>
   </div>
   {% if fout %}<div class="err">{{ fout }}</div>{% endif %}
   <input type="hidden" name="next" value="{{ nxt|e }}">

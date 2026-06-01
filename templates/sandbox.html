@@ -1,9 +1,9 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="nl">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>AdminBoeker — Sandbox / Accuracy-test</title>
+<title>AdminBooker — Sandbox / Accuracy-test</title>
 <style>
   :root{
     --bg:#f5f6f8; --panel:#ffffff; --ink:#1d2433; --muted:#6b7280;
@@ -139,7 +139,7 @@
 <body>
 <div class="wrap">
   <header class="top">
-    <h1>AdminBoeker · Sandbox</h1>
+    <h1>AdminBooker · Sandbox</h1>
     <span id="provPill" class="pill"><span class="dot"></span><span id="provText">verbinden…</span></span>
   </header>
   <p class="sub">Gooi een stapel facturen erin, ze worden één voor één <strong>echt geboekt</strong>,
@@ -387,7 +387,7 @@ function select(i){
       +'<td class="r '+(mis?'mismatch':'')+'">'+g+'→'+bp+'</td>'
       +'<td class="gb"><div class="gbcell">'
         +'<div>'+esc(r.grootboek_naam||'–')+' <span class="conf '+confClass(r.zekerheid)+'">'+confPct(r.zekerheid)+'</span></div>'
-        +(LEDGERS.length?'<select class="gbfix" data-om="'+esc(r.omschrijving)+'" title="Kies de juiste rekening; AdminBoeker onthoudt het">'+opts+'</select>':'')
+        +(LEDGERS.length?'<select class="gbfix" data-om="'+esc(r.omschrijving)+'" title="Kies de juiste rekening; AdminBooker onthoudt het">'+opts+'</select>':'')
         +(r.zekerheid_reden?'<div class="gbreason">'+esc(r.zekerheid_reden)+'</div>':'')
       +'</div></td></tr>';
   }).join('');

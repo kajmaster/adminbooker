@@ -1,5 +1,5 @@
-"""
-notify.py - stuur de eigenaar een mailtje als AdminBoeker over een boeking
+﻿"""
+notify.py - stuur de eigenaar een mailtje als AdminBooker over een boeking
 twijfelt (lage zekerheid). Config via .env; doet niets (no-op) zolang er geen
 SMTP is ingesteld, zodat de rest van de app gewoon blijft werken.
 
@@ -69,13 +69,13 @@ def review_email_tekst(leverancier, factuurnummer, doc_url, onzekere_regels) -> 
             f"    mogelijke alternatieven: {alts}"
         )
     return (
-        "AdminBoeker heeft een factuur geboekt maar twijfelt over de "
+        "AdminBooker heeft een factuur geboekt maar twijfelt over de "
         "grootboekindeling. Kijk dit even na:\n\n"
         f"Leverancier: {leverancier or '-'}\n"
         f"Factuur: {factuurnummer or '-'}\n\n"
         "Onzekere regels:\n" + "\n".join(regels) + "\n\n"
         + (f"Bekijk/aanpassen: {doc_url}\n" if doc_url else "")
-        + "\nZodra je de juiste rekening kiest, onthoudt AdminBoeker dat voor "
+        + "\nZodra je de juiste rekening kiest, onthoudt AdminBooker dat voor "
         "volgende keren."
     )
 
@@ -83,6 +83,6 @@ def review_email_tekst(leverancier, factuurnummer, doc_url, onzekere_regels) -> 
 def notify_low_confidence(leverancier, factuurnummer, doc_url, onzekere_regels) -> dict:
     if not onzekere_regels:
         return {"sent": False, "reason": "geen onzekere regels"}
-    subject = f"AdminBoeker: controleer boeking {factuurnummer or ''}".strip()
+    subject = f"AdminBooker: controleer boeking {factuurnummer or ''}".strip()
     body = review_email_tekst(leverancier, factuurnummer, doc_url, onzekere_regels)
     return send_email(subject, body)

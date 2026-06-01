@@ -1,5 +1,5 @@
-"""
-sandbox.py - opslag voor sandbox-/accuracy-runs van AdminBoeker.
+﻿"""
+sandbox.py - opslag voor sandbox-/accuracy-runs van AdminBooker.
 
 Een 'run' is een batch facturen die door de echte boekflow is gehaald, plus de
 handmatige review-uitkomsten (per veld goed/fout). We bewaren elke run als JSON

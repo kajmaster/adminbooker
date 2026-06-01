@@ -1,5 +1,5 @@
-"""
-Moneybird API client voor AdminBoeker.
+﻿"""
+Moneybird API client voor AdminBooker.
 
 Lichte client met:
   - Caching van ledger_accounts en tax_rates (per client-instantie)
@@ -262,7 +262,7 @@ class Moneybird:
             "booking_type": booking_type,
             "booking_id": str(booking_id),
             "price": f"{abs(price):.2f}",
-            "description": "AdminBoeker automatische match",
+            "description": "AdminBooker automatische match",
         }
         return self._request(
             "PATCH",

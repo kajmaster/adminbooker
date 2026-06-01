@@ -1,8 +1,8 @@
-"""
+﻿"""
 moneybird_provider.py - AccountingProvider-implementatie voor Moneybird.
 
 Wraps de bestaande Moneybird-client (moneybird.py in de root) zodat de rest
-van AdminBoeker er via de abstracte interface mee praat.
+van AdminBooker er via de abstracte interface mee praat.
 """
 
 from __future__ import annotations

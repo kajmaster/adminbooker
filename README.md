@@ -1,4 +1,4 @@
-# AdminBoeker
+﻿# AdminBooker
 
 AI-boekhouder voor Moneybird. Sleep een PDF van een inkoopfactuur, en hij wordt volledig automatisch geboekt — leverancier herkend of aangemaakt, regels en BTW gesplitst, originele PDF als bijlage gekoppeld.
 

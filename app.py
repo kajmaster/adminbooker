@@ -1,5 +1,5 @@
-"""
-app.py - AdminBoeker webserver.
+﻿"""
+app.py - AdminBooker webserver.
 
 Start:
     python app.py
@@ -29,6 +29,7 @@ import sandbox
 import corrections
 import notify
 import inbox
+from email_webhook import bp as email_bp
 
 HERE = Path(__file__).resolve().parent
 UPLOAD_DIR = Path(os.environ.get("ADMINBOOKER_DATA_DIR") or HERE) / "uploads"
@@ -39,6 +40,7 @@ app.config["MAX_CONTENT_LENGTH"] = 25 * 1024 * 1024  # 25MB max per PDF
 app.secret_key = os.environ.get("SECRET_KEY") or os.urandom(32)
 app.config["SESSION_COOKIE_HTTPONLY"] = True
 app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+app.register_blueprint(email_bp)
 
 
 # ---------- Login ----------
@@ -446,10 +448,26 @@ def api_inbox_akkoord():
     return jsonify({"ok": True, "item": rec})
 
 
+# ---------- email poller trigger ----------
+
+@app.route("/api/email/poll", methods=["POST"])
+def api_email_poll():
+    """Handmatig of via cron triggeren: verwerk ongelezen emails met PDF-bijlagen."""
+    try:
+        from email_poller import poll_once
+        resultaat = poll_once()
+        return jsonify({"ok": True, **resultaat})
+    except ValueError as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
 if __name__ == "__main__":
     print()
     print("=" * 60)
-    print(" AdminBoeker is gestart")
+    print(" AdminBooker is gestart")
     print("=" * 60)
     print(" Open in je browser:  http://localhost:5000")
     print(" Stop met:            Ctrl+C")

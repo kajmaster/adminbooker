@@ -1,4 +1,4 @@
-"""
+﻿"""
 bank_agent.py - importeer bankbestand in Moneybird + match openstaande facturen.
 
 Stappen:
@@ -228,7 +228,7 @@ def import_en_match(bank_file_path, financial_account_id=None,
             "contra_account_name": t.get("tegen_naam"),
         })
 
-    ref = reference or f"AdminBoeker import {Path(bank_file_path).name}"
+    ref = reference or f"AdminBooker import {Path(bank_file_path).name}"
     statement = mb.create_financial_statement(
         financial_account_id=financial_account_id,
         reference=ref,

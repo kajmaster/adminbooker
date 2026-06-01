@@ -1,5 +1,5 @@
-"""
-AdminBoeker providers - boekhoudpakket-koppelingen.
+﻿"""
+AdminBooker providers - boekhoudpakket-koppelingen.
 
 Importeer via:
     from providers import get_provider, AccountingProvider

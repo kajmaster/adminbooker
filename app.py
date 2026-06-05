@@ -1,4 +1,4 @@
-﻿"""
+"""
 app.py - AdminBooker webserver.
 
 Start:
@@ -462,6 +462,63 @@ def api_email_poll():
     except Exception as e:
         traceback.print_exc()
         return jsonify({"ok": False, "error": str(e)}), 500
+
+
+# ---------- ijk: leer van de eigen boekhouding ----------
+
+@app.route("/api/ijk/import", methods=["POST"])
+def api_ijk_import():
+    """Lees geboekte inkoopfacturen uit de actieve provider en zet per regel
+    (omschrijving -> grootboek) in het correctie-geheugen. Hiermee leert de
+    classifier de échte leveranciers/rekeningen van de klant uit hun eigen
+    historie, zonder dat er facturen aangeleverd hoeven worden.
+
+    Body (optioneel): {"provider": "rompslomp", "limit": 100, "dry_run": false}
+    """
+    data = request.get_json(silent=True) or {}
+    req_provider = (data.get("provider") or "").strip().lower()
+    if req_provider:
+        try:
+            set_active_provider(req_provider)
+        except Exception:
+            pass
+    limit = data.get("limit")
+    try:
+        limit = int(limit) if limit not in (None, "") else None
+    except (TypeError, ValueError):
+        limit = None
+    dry_run = bool(data.get("dry_run"))
+    try:
+        import ijk
+        provider = get_provider()
+        summary = ijk.seed_from_provider(provider, limit=limit, dry_run=dry_run)
+        return jsonify({"ok": True, "provider": provider.name, **summary})
+    except ProviderError as e:
+        return jsonify({"ok": False, "stage": "provider", "error": str(e)}), 502
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route("/api/ijk/learned")
+def api_ijk_learned():
+    """Toon wat de classifier al geleerd heeft (correctie-geheugen).
+    Gebruikt door het onboarding-scherm om de 'training' zichtbaar te maken."""
+    try:
+        entries = corrections.all_entries()
+        return jsonify({
+            "ok": True,
+            "aantal": len(entries),
+            "entries": entries,
+        })
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route("/ijk")
+def ijk_page():
+    return render_template("ijk.html")
 
 
 if __name__ == "__main__":

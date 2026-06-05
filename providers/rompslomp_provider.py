@@ -360,6 +360,26 @@ class RompslompProvider(AccountingProvider):
         self._request("DELETE", f"expenses/{document_id}.json")
         return True
 
+    def list_purchase_invoices(self, state="published", per_page=100, page=1):
+        """Lijst geboekte inkoopfacturen (expenses). Gebruikt door de
+        ijk-import om uit de boekhistorie te leren. 'state' kan published
+        of all zijn."""
+        data = self._request(
+            "GET", f"expenses.json?state={state}&per_page={per_page}&page={page}"
+        )
+        if isinstance(data, dict):
+            data = data.get("expenses") or []
+        return data or []
+
+    def get_purchase_invoice(self, document_id):
+        """Haal één expense met regel-details op (omschrijving +
+        ledger_account_id per regel). De lijst-respons bevat niet altijd de
+        regels, dus de ijk-import haalt per factuur het detail op."""
+        data = self._request("GET", f"expenses/{document_id}.json")
+        if isinstance(data, dict) and "expense" in data:
+            return data["expense"]
+        return data
+
     def attach_pdf_purchase(self, document_id, pdf_path):
         """Rompslomp ondersteunt GEEN PDF-bijlagen aan expenses via API.
         Alleen sales_invoices hebben een attachments-endpoint."""

@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Leer van je boekhouding · AdminBooker</title>
+  <style>
+    :root{
+      --accent:#2563eb; --accent-soft:#dbeafe; --text:#0f172a;
+      --text-sub:#64748b; --line:#e5e7eb; --ok:#16a34a; --warn:#b45309;
+      --bg:#f8fafc; --card:#ffffff;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;background:var(--bg);color:var(--text);
+      font-family:system-ui,-apple-system,"Segoe UI",sans-serif;line-height:1.5}
+    .wrap{max-width:860px;margin:0 auto;padding:24px 18px 60px}
+    header{display:flex;align-items:center;justify-content:space-between;
+      gap:12px;margin-bottom:22px}
+    h1{font-size:22px;margin:0}
+    .sub{color:var(--text-sub);font-size:14px;margin:2px 0 0}
+    a.back{font-size:13px;font-weight:600;color:var(--accent);
+      text-decoration:none;padding:6px 10px;border:1px solid var(--accent-soft);
+      border-radius:8px;white-space:nowrap}
+    .card{background:var(--card);border:1px solid var(--line);border-radius:14px;
+      padding:18px 20px;margin-bottom:18px}
+    .card h2{font-size:15px;margin:0 0 8px}
+    .muted{color:var(--text-sub);font-size:14px}
+    .row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:14px}
+    button{font:inherit;font-weight:600;border-radius:9px;border:1px solid transparent;
+      padding:9px 16px;cursor:pointer}
+    .btn-primary{background:var(--accent);color:#fff}
+    .btn-primary:disabled{opacity:.55;cursor:default}
+    .btn-ghost{background:#fff;color:var(--accent);border-color:var(--accent-soft)}
+    label.chk{display:inline-flex;align-items:center;gap:7px;font-size:14px;color:var(--text-sub)}
+    .stats{display:flex;flex-wrap:wrap;gap:14px;margin-top:14px}
+    .stat{flex:1;min-width:120px;background:var(--bg);border:1px solid var(--line);
+      border-radius:10px;padding:12px 14px}
+    .stat .n{font-size:24px;font-weight:700}
+    .stat .l{font-size:12px;color:var(--text-sub);text-transform:uppercase;letter-spacing:.04em}
+    .badge{display:inline-block;font-size:12px;font-weight:600;padding:2px 8px;border-radius:999px;
+      background:var(--accent-soft);color:var(--accent)}
+    table{width:100%;border-collapse:collapse;margin-top:12px;font-size:14px}
+    th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+    th{font-size:12px;text-transform:uppercase;letter-spacing:.04em;color:var(--text-sub)}
+    .pill{display:inline-block;background:var(--bg);border:1px solid var(--line);
+      border-radius:7px;padding:1px 7px;font-size:12px;color:var(--text-sub)}
+    .note{font-size:13px;border-radius:10px;padding:10px 12px;margin-top:12px}
+    .note.ok{background:#f0fdf4;border:1px solid #bbf7d0;color:#166534}
+    .note.err{background:#fef2f2;border:1px solid #fecaca;color:#b91c1c}
+    .note.info{background:#eff6ff;border:1px solid #bfdbfe;color:#1e40af}
+    .examples{margin:10px 0 0;padding:0;list-style:none}
+    .examples li{padding:6px 0;border-bottom:1px dashed var(--line);font-size:14px}
+    .examples b{font-weight:600}
+    .empty{color:var(--text-sub);font-size:14px;padding:14px 0}
+    .spin{display:inline-block;width:14px;height:14px;border:2px solid var(--accent-soft);
+      border-top-color:var(--accent);border-radius:50%;animation:s .7s linear infinite;vertical-align:-2px}
+    @keyframes s{to{transform:rotate(360deg)}}
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Leer van je boekhouding</h1>
+      <p class="sub">Maak AdminBooker slim op jóuw leveranciers — uit je eigen geboekte facturen.</p>
+    </div>
+    <a class="back" href="/">&larr; Terug</a>
+  </header>
+
+  <div class="card">
+    <h2>Hoe werkt dit?</h2>
+    <p class="muted">Je boekhouding bevat al maanden correct geboekte inkoopfacturen: per regel staat
+      een omschrijving én het grootboek dat gekozen is. AdminBooker leest die historie en onthoudt
+      “deze omschrijving hoort bij dit grootboek”. Bij een volgende, vrijwel identieke regel kiest
+      hij dat grootboek dan vanzelf, met hoge zekerheid. Geen facturen aanleveren, geen anonimiseren —
+      je data blijft in je eigen instance.</p>
+    <div class="row">
+      <label class="chk"><input type="checkbox" id="dry" checked> Eerst voorvertonen (niets opslaan)</label>
+      <button class="btn-primary" id="run">Leer van mijn boekhouding</button>
+      <span id="run-state" class="muted"></span>
+    </div>
+    <div id="result"></div>
+  </div>
+
+  <div class="card">
+    <h2>Wat AdminBooker al geleerd heeft <span class="badge" id="learned-count">…</span></h2>
+    <p class="muted">Elke regel hieronder kiest hij voortaan deterministisch. Dit groeit elke keer dat
+      je leert of een boeking corrigeert.</p>
+    <div id="learned"></div>
+  </div>
+</div>
+
+<script>
+  const $ = s => document.querySelector(s);
+  function esc(s){const d=document.createElement("div");d.textContent=(s==null?"":String(s));return d.innerHTML;}
+
+  async function loadLearned(){
+    const box = $("#learned");
+    box.innerHTML = '<div class="empty"><span class="spin"></span> Laden…</div>';
+    try{
+      const r = await fetch("/api/ijk/learned");
+      const j = await r.json();
+      if(!j.ok) throw new Error(j.error || "Onbekende fout");
+      $("#learned-count").textContent = j.aantal;
+      if(!j.entries.length){
+        box.innerHTML = '<div class="empty">Nog niets geleerd. Draai hierboven de import, of corrigeer een boeking in “Te controleren”.</div>';
+        return;
+      }
+      let h = '<table><thead><tr><th>Omschrijving</th><th>Grootboek</th><th>Leverancier</th><th>×</th></tr></thead><tbody>';
+      for(const e of j.entries){
+        h += '<tr><td>'+esc(e.omschrijving)+'</td><td>'+esc(e.account_name||e.account_id)+
+             '</td><td class="muted">'+esc(e.leverancier||'—')+'</td><td><span class="pill">'+esc(e.count||1)+'</span></td></tr>';
+      }
+      h += '</tbody></table>';
+      box.innerHTML = h;
+    }catch(err){
+      box.innerHTML = '<div class="note err">Kon geleerde regels niet laden: '+esc(err.message)+'</div>';
+    }
+  }
+
+  async function runImport(){
+    const dry = $("#dry").checked;
+    const btn = $("#run"), state = $("#run-state"), result = $("#result");
+    btn.disabled = true;
+    state.innerHTML = '<span class="spin"></span> ' + (dry ? 'Voorvertonen…' : 'Leren…');
+    result.innerHTML = "";
+    try{
+      const r = await fetch("/api/ijk/import", {
+        method:"POST", headers:{"Content-Type":"application/json"},
+        body: JSON.stringify({dry_run: dry})
+      });
+      const j = await r.json();
+      if(!j.ok) throw new Error(j.error || "Onbekende fout");
+      let h = '<div class="stats">'+
+        '<div class="stat"><div class="n">'+j.facturen+'</div><div class="l">Facturen</div></div>'+
+        '<div class="stat"><div class="n">'+j.regels+'</div><div class="l">Regels</div></div>'+
+        '<div class="stat"><div class="n">'+j.geleerd+'</div><div class="l">'+(dry?'Te leren':'Geleerd')+'</div></div>'+
+        '<div class="stat"><div class="n">'+j.overgeslagen+'</div><div class="l">Overgeslagen</div></div>'+
+        '</div>';
+      if(j.voorbeelden && j.voorbeelden.length){
+        h += '<ul class="examples">';
+        for(const v of j.voorbeelden){
+          h += '<li><b>'+esc(v.omschrijving)+'</b> &rarr; '+esc(v.grootboek)+
+               (v.leverancier? ' <span class="muted">['+esc(v.leverancier)+']</span>':'')+'</li>';
+        }
+        h += '</ul>';
+      }
+      if(dry){
+        h += '<div class="note info">Dit is een voorvertoning — er is nog niets opgeslagen. '+
+             'Zet het vinkje uit en klik nogmaals om het écht te leren.</div>';
+      }else{
+        h += '<div class="note ok">Klaar! '+j.geleerd+' regels toegevoegd aan het geheugen.</div>';
+        loadLearned();
+      }
+      result.innerHTML = h;
+    }catch(err){
+      result.innerHTML = '<div class="note err">Mislukt: '+esc(err.message)+
+        '<br><span class="muted">Tip: dit werkt alleen als er een boekhoudpakket (Rompslomp) met geldig token is gekoppeld.</span></div>';
+    }finally{
+      btn.disabled = false; state.textContent = "";
+    }
+  }
+
+  $("#run").addEventListener("click", runImport);
+  loadLearned();
+</script>
+</body>
+</html>

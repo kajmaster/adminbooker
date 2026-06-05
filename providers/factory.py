@@ -24,6 +24,10 @@ _PROVIDERS = {
     "exact": ("providers.exact_provider", "ExactOnlineProvider"),
 }
 
+# Tijdelijk verborgen providers: blijven werken in code, maar verschijnen niet
+# in de keuzelijst van de UI. Haal een naam hier weg om 'm weer te tonen.
+_HIDDEN_PROVIDERS = {"moneybird"}
+
 # In-memory cache: 1 provider-instance per naam
 _instances: dict[str, AccountingProvider] = {}
 
@@ -52,6 +56,8 @@ def available_providers() -> list[dict]:
     """Lijst alle providers met basis-info."""
     info = []
     for key, (modpath, cls) in _PROVIDERS.items():
+        if key in _HIDDEN_PROVIDERS:
+            continue
         display = {
             "moneybird": "Moneybird",
             "rompslomp": "Rompslomp (beta)",
@@ -94,7 +100,7 @@ def get_provider(name: str | None = None) -> AccountingProvider:
       3. ACCOUNTING_PROVIDER env-variabele
       4. default 'moneybird'
     """
-    chosen = name or _active or os.environ.get("ACCOUNTING_PROVIDER") or "moneybird"
+    chosen = name or _active or os.environ.get("ACCOUNTING_PROVIDER") or "rompslomp"
     chosen = chosen.lower().strip()
     if chosen not in _PROVIDERS:
         raise ProviderError(f"Onbekende provider '{chosen}'")

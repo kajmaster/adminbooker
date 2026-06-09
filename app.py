@@ -20,6 +20,7 @@ import traceback
 from pathlib import Path
 
 from flask import Flask, abort, jsonify, redirect, render_template, request, send_from_directory, session, url_for
+from werkzeug.security import check_password_hash
 
 from providers import get_provider, ProviderError, available_providers, set_active_provider
 from boek_agent import boek, boek_verkoop
@@ -43,10 +44,80 @@ app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
 app.register_blueprint(email_bp)
 
 
-# ---------- Login ----------
-# Login is bewust uitgeschakeld voor de pilot: de app is direct bruikbaar
-# zonder gebruikersnaam/wachtwoord. Bescherm de URL desgewenst op een andere
-# manier (geheime link / netwerkbeperking) als dat later nodig is.
+# ---------- Login (optioneel, per instance) ----------
+# Eén ingelogde gebruiker per klant-instance. De login is ALLEEN actief als je
+# inloggegevens instelt via env-vars. Zo is een klant-instance beveiligd, terwijl
+# een open demo-instance (zonder creds) gewoon direct bruikbaar blijft.
+#
+# Zet voor een klant in de omgeving:
+#   USERNAME       = gebruikersnaam (bv. naam van de admin-kracht)
+#   PASSWORD_HASH  = hash, genereer met:
+#       python -c "from werkzeug.security import generate_password_hash; print(generate_password_hash('hetwachtwoord'))"
+#   SECRET_KEY     = vereist als login aan staat (anders breken sessies bij >1 worker)
+_AUTH_USERNAME = os.environ.get("USERNAME") or "admin"
+_AUTH_HASH = os.environ.get("PASSWORD_HASH") or ""
+_AUTH_PLAIN = os.environ.get("PASSWORD") or ""  # alleen voor lokaal testen
+
+# Pad-prefixen die altijd zonder login bereikbaar zijn.
+_PUBLIC_PREFIXES = ("/login", "/static/", "/favicon.ico")
+
+
+def _auth_configured() -> bool:
+    """Login is aan zodra er een wachtwoord(hash) is ingesteld."""
+    return bool(_AUTH_HASH or _AUTH_PLAIN)
+
+
+def _check_credentials(username: str, password: str) -> bool:
+    if username != _AUTH_USERNAME:
+        return False
+    if _AUTH_HASH:
+        try:
+            return check_password_hash(_AUTH_HASH, password)
+        except Exception:
+            return False
+    if _AUTH_PLAIN:
+        return password == _AUTH_PLAIN
+    return False
+
+
+@app.before_request
+def _require_login():
+    # Geen credentials ingesteld -> open instance (demo). Niets afschermen.
+    if not _auth_configured():
+        return None
+    path = request.path or "/"
+    if any(path == p or path.startswith(p) for p in _PUBLIC_PREFIXES):
+        return None
+    if session.get("user") == _AUTH_USERNAME:
+        return None
+    if path.startswith("/api/"):
+        return jsonify({"ok": False, "error": "Niet ingelogd"}), 401
+    return redirect(url_for("login", next=path))
+
+
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    # Login uit? Dan heeft de loginpagina geen functie -> stuur door naar home.
+    if not _auth_configured():
+        return redirect("/")
+    fout = None
+    if request.method == "POST":
+        u = (request.form.get("username") or "").strip()
+        p = request.form.get("password") or ""
+        if _check_credentials(u, p):
+            session["user"] = _AUTH_USERNAME
+            nxt = request.args.get("next") or request.form.get("next") or "/"
+            if not nxt.startswith("/"):
+                nxt = "/"
+            return redirect(nxt)
+        fout = "Onjuiste gebruikersnaam of wachtwoord."
+    return render_template("login.html", fout=fout, nxt=request.args.get("next") or "/")
+
+
+@app.route("/logout")
+def logout():
+    session.clear()
+    return redirect(url_for("login"))
 
 
 def _to_book_payload(parsed: dict) -> dict:
@@ -70,7 +141,7 @@ def _moneybird_url(admin_id: str, doc_id: str) -> str:
 
 @app.route("/")
 def index():
-    return render_template("index.html")
+    return render_template("index.html", auth_on=_auth_configured())
 
 
 @app.route("/api/health")

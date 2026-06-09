@@ -214,20 +214,196 @@
       .dropzone{padding:40px 18px}
     }
   </style>
+  <meta name="theme-color" content="#05070d">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+  <style id="lux-dark">
+    /* ============================================================
+       LUX DARK — premium futuristische dark-laag (electric cyan).
+       Overschrijft de lichte basis; alle class-namen blijven gelijk
+       zodat de bestaande markup en JS ongemoeid blijven.
+       ============================================================ */
+    :root{
+      --bg:#05070d; --bg-2:#080b14; --bg-elev:rgba(255,255,255,.035);
+      --bg-soft:rgba(255,255,255,.05);
+      --border:rgba(255,255,255,.09); --border-strong:rgba(34,211,238,.35);
+      --text:#eaf2fb; --text-muted:#9fb0c3; --text-subtle:#6b7a8d;
+      --accent:#22d3ee; --accent-2:#38bdf8; --accent-soft:rgba(34,211,238,.12);
+      --primary:#22d3ee; --primary-hover:#67e8f9;
+      --success:#34d399; --success-soft:rgba(52,211,153,.14);
+      --error:#f87171; --error-soft:rgba(248,113,113,.14);
+      --warning:#fbbf24; --warning-soft:rgba(251,191,36,.14);
+      --glow:0 0 0 1px rgba(34,211,238,.15), 0 8px 40px -8px rgba(34,211,238,.35);
+    }
+    html,body{background:var(--bg)}
+    body{
+      color:var(--text);
+      background:
+        radial-gradient(1100px 620px at 50% -200px, rgba(34,211,238,.10), transparent 70%),
+        radial-gradient(900px 500px at 85% 8%, rgba(56,189,248,.06), transparent 70%),
+        var(--bg);
+      background-attachment:fixed;
+    }
+
+    /* sterren-canvas + hero-gloed achter alles */
+    #starfield{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events:none;display:block}
+    #hero-glow{
+      position:fixed;left:50%;top:-160px;transform:translateX(-50%);
+      width:1200px;height:700px;z-index:0;pointer-events:none;
+      background:radial-gradient(closest-side, rgba(34,211,238,.16), rgba(56,189,248,.05) 45%, transparent 72%);
+      filter:blur(20px);opacity:.9;
+      animation:auroraPulse 9s ease-in-out infinite;
+    }
+    @keyframes auroraPulse{0%,100%{opacity:.65;transform:translateX(-50%) scale(1)}50%{opacity:1;transform:translateX(-50%) scale(1.08)}}
+    .nav,.hero,.section,.footer,.platforms-strip{position:relative;z-index:1}
+
+    /* nav */
+    .nav{background:rgba(5,7,13,.65);backdrop-filter:saturate(160%) blur(14px);border-bottom:1px solid var(--border)}
+    .brand-name{color:var(--text);letter-spacing:.04em;font-family:'Space Grotesk',Inter,sans-serif}
+    .brand-logo{background:linear-gradient(135deg,#0ea5e9,#22d3ee);box-shadow:0 0 18px rgba(34,211,238,.5)}
+    .nav-links a{color:var(--text-muted)}
+    .nav-links a:hover{color:var(--text)}
+    .nav-cta{background:linear-gradient(135deg,#22d3ee,#38bdf8);color:#04121a !important;font-weight:600;box-shadow:0 0 18px rgba(34,211,238,.4)}
+    .nav-cta:hover{filter:brightness(1.08)}
+
+    /* hero */
+    .eyebrow{background:var(--accent-soft);color:#7df0ff;border:1px solid rgba(34,211,238,.3);box-shadow:0 0 22px rgba(34,211,238,.15)}
+    .eyebrow .dot{background:#22d3ee;box-shadow:0 0 10px #22d3ee}
+    .hero h1{font-family:'Space Grotesk',Inter,sans-serif;color:#f4f9ff;letter-spacing:-0.03em;text-shadow:0 2px 40px rgba(34,211,238,.12)}
+    .hero h1 .grad{
+      background:linear-gradient(100deg,#67e8f9 0%,#38bdf8 45%,#a5f3fc 100%);
+      background-size:200% auto;-webkit-background-clip:text;background-clip:text;color:transparent;
+      animation:shimmer 6s linear infinite;
+    }
+    @keyframes shimmer{to{background-position:200% center}}
+    .hero p.lead{color:var(--text-muted)}
+    .hero p.lead strong{color:#a5f3fc;font-weight:600}
+
+    /* buttons */
+    .btn-primary{background:linear-gradient(135deg,#22d3ee,#38bdf8);color:#04121a;font-weight:600;box-shadow:0 0 0 1px rgba(34,211,238,.4),0 10px 30px -8px rgba(34,211,238,.55)}
+    .btn-primary:hover{filter:brightness(1.08);transform:translateY(-1px);box-shadow:0 0 0 1px rgba(34,211,238,.6),0 14px 38px -8px rgba(34,211,238,.7)}
+    .btn-ghost{background:rgba(255,255,255,.04);color:var(--text);border:1px solid var(--border);backdrop-filter:blur(8px)}
+    .btn-ghost:hover{background:rgba(34,211,238,.08);border-color:rgba(34,211,238,.4);color:#bff3ff}
+
+    /* glass-cards: proof, demo, cards, features */
+    .proof-item,.demo-frame,.card,.feature,.platform-pill,.status-pill,.signup-form select,.signup-form input[type=email]{
+      background:var(--bg-elev);border:1px solid var(--border);
+      backdrop-filter:blur(10px);
+    }
+    .proof-item{box-shadow:inset 0 1px 0 rgba(255,255,255,.05)}
+    .proof-item .num{color:#eaf6ff;font-family:'Space Grotesk',Inter,sans-serif}
+    .proof-item .lbl{color:var(--text-muted)}
+
+    .platforms-strip{border-top:1px solid var(--border)}
+    .platforms-strip .label{color:var(--text-subtle)}
+    .platform-pill{color:var(--text);box-shadow:0 0 18px -6px rgba(34,211,238,.4)}
+    .platform-pill .pdot{background:#34d399;box-shadow:0 0 0 3px rgba(52,211,153,.18)}
+
+    /* sections / headings */
+    .section h2{font-family:'Space Grotesk',Inter,sans-serif;color:#f4f9ff;letter-spacing:-0.02em}
+    .section .sec-sub{color:var(--text-muted)}
+    #hoe.section{background:linear-gradient(180deg,rgba(255,255,255,.02),transparent);border-top:1px solid var(--border);border-bottom:1px solid var(--border)}
+
+    /* demo */
+    .demo-frame{border-radius:var(--radius-lg);box-shadow:0 30px 80px -30px rgba(0,0,0,.8),0 0 0 1px rgba(34,211,238,.06)}
+    .demo-title{color:var(--text)}
+    .demo-sub,.dropzone-sub,.card-sub{color:var(--text-muted)}
+    .status-pill{color:var(--text-muted)}
+    .status-pill.ok .dot{background:#34d399;box-shadow:0 0 0 3px rgba(52,211,153,.2)}
+    .dropzone{background:rgba(34,211,238,.03);border:2px dashed rgba(34,211,238,.25)}
+    .dropzone:hover{background:rgba(34,211,238,.06);border-color:rgba(34,211,238,.5)}
+    .dropzone.is-drag{background:rgba(34,211,238,.1);border-color:#22d3ee;box-shadow:0 0 50px -10px rgba(34,211,238,.5)}
+    .dropzone-icon{background:linear-gradient(135deg,rgba(34,211,238,.16),rgba(56,189,248,.06));color:#7df0ff;box-shadow:inset 0 0 0 1px rgba(34,211,238,.2)}
+    .dropzone-title{color:var(--text)}
+    .dropzone-hint{color:var(--text-subtle)}
+    .platform-toggle{background:rgba(255,255,255,.04);border:1px solid var(--border)}
+    .platform-toggle button{color:var(--text-muted)}
+    .platform-toggle button.active{background:rgba(34,211,238,.14);color:#bff3ff;box-shadow:inset 0 0 0 1px rgba(34,211,238,.3)}
+
+    /* feed cards */
+    .card-meta{border-top:1px solid var(--border)}
+    .card-meta .lbl,.lines-head{color:var(--text-subtle)}
+    .card-meta .val{color:var(--text)}
+    .card-icon.ok{background:var(--success-soft);color:#6ee7b7}
+    .card-icon.error{background:var(--error-soft);color:#fca5a5}
+    .card-icon.busy{background:rgba(255,255,255,.06);color:var(--text-muted)}
+    .lines,.line{border-top:1px solid var(--border)}
+    .line .pill{background:rgba(34,211,238,.1);color:#9fe9f5}
+
+    /* features */
+    .feature{border-radius:var(--radius-lg);transition:transform .2s,border-color .2s,box-shadow .2s}
+    .feature:hover{transform:translateY(-3px);border-color:rgba(34,211,238,.35);box-shadow:0 20px 50px -25px rgba(34,211,238,.4)}
+    .feature-icon{background:linear-gradient(135deg,rgba(34,211,238,.16),rgba(56,189,248,.05));color:#7df0ff;box-shadow:inset 0 0 0 1px rgba(34,211,238,.18)}
+    .feature h3{color:#eaf6ff}
+    .feature p{color:var(--text-muted)}
+
+    /* how it works */
+    .step .num{background:linear-gradient(135deg,#22d3ee,#38bdf8);color:#04121a;box-shadow:0 0 22px rgba(34,211,238,.45)}
+    .step h3{color:var(--text)}
+    .step p{color:var(--text-muted)}
+
+    /* signup */
+    .signup{
+      background:
+        radial-gradient(700px 300px at 50% -40px, rgba(34,211,238,.18), transparent 70%),
+        linear-gradient(135deg,#0a1422 0%,#0b1a2b 100%);
+      border:1px solid rgba(34,211,238,.18);
+      box-shadow:0 0 0 1px rgba(34,211,238,.05),0 40px 90px -40px rgba(34,211,238,.5);
+    }
+    .signup h2{font-family:'Space Grotesk',Inter,sans-serif}
+    .signup p{color:#a7bdd4}
+    .signup-form input[type=email],.signup-form select{background:rgba(255,255,255,.06);color:var(--text);border:1px solid var(--border)}
+    .signup-form input[type=email]::placeholder{color:var(--text-subtle)}
+    .signup-form button{background:linear-gradient(135deg,#22d3ee,#38bdf8);color:#04121a;font-weight:600;box-shadow:0 0 22px rgba(34,211,238,.45)}
+    .signup-form button:hover{filter:brightness(1.08)}
+    .signup-note{color:#7e93aa}
+
+    /* footer */
+    .footer{border-top:1px solid var(--border);color:var(--text-subtle)}
+    .footer a{color:var(--text-muted)}
+    .footer a:hover{color:var(--text)}
+
+    /* spinner zichtbaar op donker */
+    .spinner{border-color:rgba(255,255,255,.18);border-top-color:#22d3ee}
+
+    /* hero wat lager op de pagina (gaf eerder de badge die ruimte) */
+    .hero{padding-top:128px}
+    @media(max-width:720px){.hero{padding-top:84px}}
+
+    /* verfijnde brand linksboven (geen goedkoop blokje meer) */
+    .brand{gap:11px}
+    .brand-mark{width:32px;height:32px;display:inline-flex;align-items:center;justify-content:center;
+      filter:drop-shadow(0 0 9px rgba(56,189,248,.55));transition:filter .25s,transform .25s}
+    .brand-mark svg{width:32px;height:32px;display:block}
+    .brand:hover .brand-mark{filter:drop-shadow(0 0 14px rgba(56,189,248,.85));transform:translateY(-1px)}
+    .brand-name{font-family:'Space Grotesk',Inter,sans-serif;font-weight:600;font-size:18px;
+      letter-spacing:.035em;color:#eaf6ff}
+
+    @media (prefers-reduced-motion: reduce){
+      #starfield{display:none}
+      #hero-glow{animation:none}
+      .hero h1 .grad{animation:none}
+    }
+  </style>
 </head>
 <body>
+  <canvas id="starfield" aria-hidden="true"></canvas>
+  <div id="hero-glow" aria-hidden="true"></div>
 
   <!-- NAV -->
   <nav class="nav">
     <div class="container nav-inner">
       <a href="#" class="brand">
-        <div class="brand-logo">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M3 7l9-4 9 4-9 4-9-4z"></path>
-            <path d="M3 12l9 4 9-4"></path>
-            <path d="M3 17l9 4 9-4"></path>
+        <span class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 32 32" fill="none">
+            <defs>
+              <linearGradient id="bm" x1="2" y1="2" x2="30" y2="30" gradientUnits="userSpaceOnUse">
+                <stop stop-color="#a5f3fc"></stop><stop offset="1" stop-color="#38bdf8"></stop>
+              </linearGradient>
+            </defs>
+            <path d="M16 2.5 L28 9 V23 L16 29.5 L4 23 V9 Z" stroke="url(#bm)" stroke-width="1.5" stroke-linejoin="round"></path>
+            <path d="M16 2.5 V16 L28 9 M16 16 L4 9 M16 16 V29.5" stroke="url(#bm)" stroke-width="1.1" stroke-linejoin="round" opacity="0.65"></path>
           </svg>
-        </div>
+        </span>
         <span class="brand-name">AdminBooker</span>
       </a>
       <div class="nav-links">
@@ -241,9 +417,8 @@
 
   <!-- HERO -->
   <header class="hero container">
-    <div class="eyebrow"><span class="dot"></span> Voor de bouw — private beta live</div>
     <h1>Sleep een bouwfactuur, hij staat <span class="grad">geboekt in Rompslomp</span>.</h1>
-    <p class="lead">AdminBooker leest je inkoopfacturen van onderaannemers, bouwmarkten en materiaalleveranciers, herkent de leverancier, splitst regels en BTW — <strong>ook verlegd</strong> — en boekt 'm volledig automatisch in <strong>Rompslomp</strong>. Geen knoppen, geen review.</p>
+    <p class="lead">AdminBooker leest je inkoopfacturen van onderaannemers, bouwmarkten en materiaalleveranciers, herkent de leverancier en splitst regels en BTW (<strong>ook verlegd</strong>). Daarna staat alles volledig automatisch geboekt in <strong>Rompslomp</strong>. Geen knoppen, geen review.</p>
     <div class="hero-cta">
       <a href="#demo" class="btn btn-primary btn-lg">
         Probeer het zelf
@@ -1024,6 +1199,104 @@
         betaSubmit.textContent = "Aanmelden";
       }
     });
+  </script>
+
+  <!-- ============================================================
+       Bewegende sterrenachtergrond (electric cyan starfield).
+       Pure canvas, geen libraries. Respecteert reduced-motion.
+       ============================================================ -->
+  <script>
+  (function(){
+    var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    var canvas = document.getElementById("starfield");
+    if(!canvas || reduce) return;
+    var ctx = canvas.getContext("2d");
+    var W=0, H=0, DPR=Math.min(window.devicePixelRatio||1, 2);
+    var stars=[], shooting=null, mouseX=0, mouseY=0, tMouseX=0, tMouseY=0;
+
+    function rand(a,b){return a+Math.random()*(b-a);}
+
+    function build(){
+      W=canvas.clientWidth; H=canvas.clientHeight;
+      canvas.width=W*DPR; canvas.height=H*DPR;
+      ctx.setTransform(DPR,0,0,DPR,0,0);
+      var count=Math.round(Math.min(260, (W*H)/9000)); // dichtheid op schermgrootte
+      stars=[];
+      for(var i=0;i<count;i++){
+        var depth=Math.random();              // 0 = ver, 1 = dichtbij (voor parallax + grootte)
+        stars.push({
+          x:Math.random()*W, y:Math.random()*H,
+          z:depth,
+          r:rand(0.3,1.6)+depth*0.9,
+          a:rand(0.25,0.9),
+          tw:rand(0.005,0.02),                // twinkel-snelheid
+          ph:Math.random()*Math.PI*2,
+          vx:(-0.06-depth*0.10),              // langzame drift naar links
+          vy:(0.02+depth*0.05),               // lichte drift omlaag
+          big:Math.random()<0.06               // enkele gloed-sterren
+        });
+      }
+    }
+
+    function maybeShoot(){
+      if(shooting || Math.random()>0.004) return;
+      var sx=rand(W*0.1,W*0.9), sy=rand(0,H*0.4);
+      shooting={x:sx,y:sy,len:0,maxLen:rand(120,260),vx:rand(4,7),vy:rand(1.5,3),life:1};
+    }
+
+    function frame(){
+      ctx.clearRect(0,0,W,H);
+      // soepele parallax volgens muis
+      mouseX+=(tMouseX-mouseX)*0.05; mouseY+=(tMouseY-mouseY)*0.05;
+
+      for(var i=0;i<stars.length;i++){
+        var s=stars[i];
+        s.x+=s.vx; s.y+=s.vy;
+        if(s.x<-2) s.x=W+2; if(s.x>W+2) s.x=-2;
+        if(s.y>H+2) s.y=-2; if(s.y<-2) s.y=H+2;
+        s.ph+=s.tw;
+        var tw=0.55+0.45*Math.sin(s.ph);
+        var px=s.x+mouseX*(s.z*18), py=s.y+mouseY*(s.z*18);
+        var alpha=s.a*tw;
+        if(s.big){
+          var g=ctx.createRadialGradient(px,py,0,px,py,s.r*6);
+          g.addColorStop(0,"rgba(165,243,252,"+(alpha*0.9)+")");
+          g.addColorStop(0.4,"rgba(34,211,238,"+(alpha*0.35)+")");
+          g.addColorStop(1,"rgba(34,211,238,0)");
+          ctx.fillStyle=g;
+          ctx.beginPath(); ctx.arc(px,py,s.r*6,0,Math.PI*2); ctx.fill();
+        }
+        ctx.beginPath();
+        ctx.fillStyle="rgba(224,247,255,"+alpha+")";
+        ctx.arc(px,py,s.r,0,Math.PI*2); ctx.fill();
+      }
+
+      // vallende ster
+      maybeShoot();
+      if(shooting){
+        var sh=shooting;
+        sh.x+=sh.vx; sh.y+=sh.vy; sh.len=Math.min(sh.maxLen, sh.len+12); sh.life-=0.012;
+        var ex=sh.x-sh.vx/Math.hypot(sh.vx,sh.vy)*sh.len;
+        var ey=sh.y-sh.vy/Math.hypot(sh.vx,sh.vy)*sh.len;
+        var grad=ctx.createLinearGradient(sh.x,sh.y,ex,ey);
+        grad.addColorStop(0,"rgba(186,250,255,"+Math.max(0,sh.life)+")");
+        grad.addColorStop(1,"rgba(34,211,238,0)");
+        ctx.strokeStyle=grad; ctx.lineWidth=1.6; ctx.lineCap="round";
+        ctx.beginPath(); ctx.moveTo(sh.x,sh.y); ctx.lineTo(ex,ey); ctx.stroke();
+        if(sh.life<=0 || sh.x>W+40 || sh.y>H+40) shooting=null;
+      }
+      requestAnimationFrame(frame);
+    }
+
+    window.addEventListener("resize", build, {passive:true});
+    window.addEventListener("mousemove", function(e){
+      tMouseX=(e.clientX/window.innerWidth-0.5)*2;
+      tMouseY=(e.clientY/window.innerHeight-0.5)*2;
+    }, {passive:true});
+
+    build();
+    requestAnimationFrame(frame);
+  })();
   </script>
 </body>
 </html>

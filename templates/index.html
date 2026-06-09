@@ -243,6 +243,11 @@
         <a href="/ijk" title="Leer van je eigen geboekte facturen"
            style="font-size:13px;font-weight:600;color:#2563eb;text-decoration:none;
                   padding:6px 10px;border:1px solid #dbeafe;border-radius:8px">Leer van boekhouding</a>
+        {% if auth_on %}
+        <a href="/logout" title="Uitloggen"
+           style="font-size:13px;font-weight:500;color:#6b7280;text-decoration:none;
+                  padding:6px 10px;border:1px solid #e5e7eb;border-radius:8px">Uitloggen</a>
+        {% endif %}
         <select id="provider-select" class="provider-select" title="Boekhoudpakket">
           <option value="moneybird">Moneybird</option>
           <option value="rompslomp">Rompslomp (beta)</option>

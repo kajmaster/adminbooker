@@ -30,6 +30,20 @@ DEFAULT_MODELS = {
     "openai": "gpt-4o-mini",
 }
 
+# Sterker (duurder) model voor twijfelgevallen. Bij lage zekerheid of een
+# verzamelrekening doen we één extra poging met dit model. Override met env
+# LLM_MODEL_STRONG. Faalt de call, dan houden we gewoon het eerste resultaat.
+STRONGER_MODELS = {
+    "anthropic": "claude-sonnet-4-5",
+    "openai": "gpt-4o",
+}
+
+
+def _is_verzamel(naam) -> bool:
+    """Verzamel-/restrekening? Die wil je vermijden ('Diversen', 'Overige')."""
+    t = (naam or "").lower()
+    return ("diversen" in t or "overige" in t or "algemene kosten" in t)
+
 
 def _provider():
     if os.environ.get("ANTHROPIC_API_KEY"):
@@ -143,18 +157,14 @@ def _match_ledger(ledgers, account_naam):
     return None
 
 
-def classificeer(ledgers, omschrijving, leverancier="", voorbeelden=None, timeout=20):
-    """Vraag de LLM om een grootboek. Retourneer dict (zie classify.py) of None."""
-    prov = _provider()
-    if not prov or not ledgers:
-        return None
-    model = os.environ.get("LLM_MODEL") or DEFAULT_MODELS[prov]
-    prompt = _bouw_prompt(ledgers, omschrijving, leverancier, voorbeelden)
+def _classify_once(prov, model, ledgers, prompt, timeout):
+    """Eén LLM-poging met een specifiek model. Retourneer (account, conf, reason)
+    of None bij een fout/onbruikbaar antwoord."""
     try:
         text = _call_anthropic(model, prompt, timeout) if prov == "anthropic" \
             else _call_openai(model, prompt, timeout)
     except Exception:
-        return None  # netwerk/auth/rate-limit: val terug op regels
+        return None  # netwerk/auth/rate-limit
     data = _parse_json(text)
     if not data:
         return None
@@ -166,10 +176,58 @@ def classificeer(ledgers, omschrijving, leverancier="", voorbeelden=None, timeou
     except (TypeError, ValueError):
         conf = 0.7
     conf = max(0.0, min(1.0, conf))
+    reason = (data.get("reason") or "LLM-keuze.") + f" ({model})"
+    return account, conf, reason
+
+
+def classificeer(ledgers, omschrijving, leverancier="", voorbeelden=None, timeout=20):
+    """Vraag de LLM om een grootboek. Retourneer dict (zie classify.py) of None.
+
+    Strategie: eerst een goedkoop/snel model. Komt dat met lage zekerheid OF op
+    een verzamelrekening ('Diversen'/'Overige') uit, dan doen we één extra poging
+    met een sterker model. Een verzamelrekening krijgt sowieso een lage zekerheid,
+    zodat de boeking naar 'Te controleren' gaat in plaats van blind op Diversen.
+    """
+    prov = _provider()
+    if not prov or not ledgers:
+        return None
+    prompt = _bouw_prompt(ledgers, omschrijving, leverancier, voorbeelden)
+
+    cheap = os.environ.get("LLM_MODEL") or DEFAULT_MODELS[prov]
+    first = _classify_once(prov, cheap, ledgers, prompt, timeout)
+    if not first:
+        return None
+    account, conf, reason = first
+
+    # Escaleren naar een sterker model als we twijfelen of op een verzamelrekening
+    # belanden. Alleen als de gebruiker geen vast LLM_MODEL forceerde.
+    strong = os.environ.get("LLM_MODEL_STRONG") or STRONGER_MODELS.get(prov)
+    twijfel = conf < 0.7 or _is_verzamel(_ledger_naam(account))
+    if twijfel and strong and strong != cheap and not os.environ.get("LLM_MODEL"):
+        second = _classify_once(prov, strong, ledgers, prompt, timeout)
+        if second:
+            acc2, conf2, reason2 = second
+            beter = (
+                # sterker model vond wél een specifieke rekening
+                (not _is_verzamel(_ledger_naam(acc2)) and _is_verzamel(_ledger_naam(account)))
+                # of gewoon meer zekerheid
+                or (conf2 > conf)
+            )
+            if beter:
+                account, conf, reason = acc2, conf2, reason2
+
+    # Verzamelrekening = eigenlijk "weet ik niet" -> laag scoren zodat het wordt
+    # nagekeken, niet blind als Diversen geboekt.
+    if _is_verzamel(_ledger_naam(account)):
+        conf = min(conf, 0.4)
+        reason = ("Geen specifieke rekening gevonden; op een verzamelrekening "
+                  "gezet — laat dit nakijken en kies zo nodig het juiste "
+                  "grootboek. " + reason)
+
     return {
         "account": account,
         "confidence": conf,
         "method": "llm",
-        "reason": (data.get("reason") or "LLM-keuze.") + f" ({model})",
+        "reason": reason,
         "alternatives": [],
     }

@@ -186,11 +186,14 @@ def parse_pdf(pdf_path):
     lev = out["leverancier"]
 
     SKIP_WORDS = re.compile(
-        r"^(FACTUUR|INVOICE|Bill\s*to|Klant|Customer|Date|Datum|"
-        r"Factuurdatum|Factuurnummer|Vervaldatum|Due\s*Date|"
+        r"^(FACTUUR|INVOICE|From|Bill\s*to|Ship\s*to|Sold\s*to|Klant|Customer|"
+        r"Date|Datum|Factuurdatum|Factuurnummer|Vervaldatum|Due\s*Date|"
         r"Aan|To|#|Betreft|Reference|Pagina)\b|^#",
         re.IGNORECASE,
     )
+    # Twee-koloms 'From ... Bill To'-layouts belanden soms als één tekstregel.
+    # Zo'n regel (of een naam waarin 'Bill To' opduikt) is nooit de leverancier.
+    BILLTO_RE = re.compile(r"\bbill\s*to\b|\bship\s*to\b", re.IGNORECASE)
 
     if lines:
         # Loop door eerste 8 regels, pak eerste regel die niet gezicht hoort te zijn
@@ -216,6 +219,9 @@ def parse_pdf(pdf_path):
             naam = re.sub(r"\s*\b" + _DOC + r"\b.*$", "", naam, flags=re.IGNORECASE).strip()
             naam = re.sub(r"^" + _DOC + r"\s*[#:\-]?\s*", "", naam, flags=re.IGNORECASE).strip()
             if not naam:
+                continue
+            # 'From'/'Bill To'-koprijen of restanten daarvan zijn geen leverancier.
+            if BILLTO_RE.search(naam) or naam.strip().lower() in ("from", "bill to", "ship to"):
                 continue
             lev["company_name"] = naam
             out["_confidence"]["leverancier_naam"] = 0.7

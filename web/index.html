@@ -64,8 +64,9 @@
     .nav-cta{display:inline-flex;align-items:center;gap:6px;background:var(--primary);color:#fff !important;padding:8px 14px;border-radius:8px;font-size:13px;font-weight:500;text-decoration:none;box-shadow:var(--shadow)}
     .nav-cta:hover{background:var(--primary-hover)}
     @media(max-width:720px){
-      .nav-links a:not(.nav-cta){display:none}
+      .nav-links a:not(.nav-cta):not(.nav-login){display:none}
     }
+    .nav-login{display:inline-flex;align-items:center;padding:8px 14px;border-radius:8px;border:1px solid var(--border);font-size:13px}
 
     /* ---------- hero ---------- */
     .hero{padding:80px 0 48px;text-align:center}
@@ -410,6 +411,7 @@
         <a href="#demo">Demo</a>
         <a href="#hoe">Hoe het werkt</a>
         <a href="#features">Features</a>
+        <a href="https://adminbooker.onrender.com" class="nav-login">Inloggen</a>
         <a href="#beta" class="nav-cta">Meld je aan</a>
       </div>
     </div>
@@ -612,6 +614,7 @@
       <div>
         <a href="#demo">Demo</a>
         <a href="#beta">Beta</a>
+        <a href="https://adminbooker.onrender.com">Inloggen</a>
         <a href="mailto:hello@adminbooker.com">Contact</a>
       </div>
     </div>

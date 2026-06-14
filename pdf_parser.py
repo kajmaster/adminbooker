@@ -132,10 +132,70 @@ BTW_META_RE = re.compile(
 BTW_VERLEGD_RE = re.compile(r"BTW\s*verlegd|VAT\s*reverse\s*charged|reverse\s*charge", re.IGNORECASE)
 
 
+def _leverancier_uit_kolommen(words):
+    """Ontwar een twee-koloms 'From ... Bill To'-kop met behulp van woord-posities.
+
+    In zulke layouts lopen de leverancier (links, onder 'From') en de klant
+    (rechts, onder 'Bill To') in de platte tekst door elkaar, en plakken losse
+    watermerk-letters ('S','A','M','P','L','E') ertussen. We pakken hier de
+    linkerkolom op x-positie en geven (company_name, [adresregels]) terug.
+
+    Retourneert (None, []) als er geen herkenbare twee-koloms-kop is.
+    """
+    if not words:
+        return None, []
+    from_w = bill_w = None
+    for w in words:
+        t = (w.get("text") or "").strip().lower()
+        if t == "from" and from_w is None:
+            from_w = w
+        elif t == "bill" and bill_w is None:
+            bill_w = w
+    if not from_w or not bill_w or bill_w["x0"] <= from_w["x0"]:
+        return None, []
+
+    grens = (from_w["x1"] + bill_w["x0"]) / 2.0
+    header_bottom = max(from_w["bottom"], bill_w["bottom"])
+
+    # Linkerkolom: woorden onder de koppen, links van de grens, geen losse letters.
+    left = [
+        w for w in words
+        if w["top"] >= header_bottom - 1
+        and w["x1"] <= grens
+        and len((w.get("text") or "").strip()) > 1
+    ]
+    if not left:
+        return None, []
+
+    left.sort(key=lambda w: (round(w["top"], 1), w["x0"]))
+    regels, huidige, huidige_top = [], [], None
+    for w in left:
+        if huidige_top is None or abs(w["top"] - huidige_top) <= 3:
+            huidige.append(w)
+            if huidige_top is None:
+                huidige_top = w["top"]
+        else:
+            regels.append(" ".join(x["text"] for x in huidige).strip())
+            huidige, huidige_top = [w], w["top"]
+    if huidige:
+        regels.append(" ".join(x["text"] for x in huidige).strip())
+    regels = [r for r in regels if r]
+    if not regels:
+        return None, []
+    return regels[0][:100], regels[1:]
+
+
 def parse_pdf(pdf_path):
     pdf_path = Path(pdf_path)
     with pdfplumber.open(pdf_path) as pdf:
         text = "\n".join((p.extract_text() or "") for p in pdf.pages)
+        # Woorden (met x/y-posities) van de eerste pagina: nodig om twee-koloms
+        # 'From ... Bill To'-layouts te ontwarren (kolommen lopen anders door
+        # elkaar in de platte tekst).
+        try:
+            first_words = pdf.pages[0].extract_words() if pdf.pages else []
+        except Exception:
+            first_words = []
 
     out = {
         "valuta": "EUR",
@@ -185,6 +245,23 @@ def parse_pdf(pdf_path):
     lines = [ln.rstrip() for ln in text.splitlines() if ln.strip()]
     lev = out["leverancier"]
 
+    # Voorkeur: twee-koloms 'From ... Bill To'-layout ontwarren via x-posities.
+    # Dit voorkomt dat losse watermerk-letters of de Bill-To-naam als leverancier
+    # worden opgepikt.
+    kol_naam, kol_adres = _leverancier_uit_kolommen(first_words)
+    if kol_naam:
+        lev["company_name"] = kol_naam
+        out["_confidence"]["leverancier_naam"] = 0.9
+        for a in kol_adres:
+            mzc = re.match(r"^\s*(\d{4}\s*[A-Z]{2})\s+([A-Za-z\.\-' ]+?)\s*$", a)
+            if mzc and "city" not in lev:
+                lev["zipcode"] = mzc.group(1).strip()
+                lev["city"] = mzc.group(2).strip()
+            elif "address1" not in lev and not re.search(
+                r"@|kvk|btw|vat|iban|email", a, re.IGNORECASE
+            ):
+                lev["address1"] = a
+
     SKIP_WORDS = re.compile(
         r"^(FACTUUR|INVOICE|From|Bill\s*to|Ship\s*to|Sold\s*to|Klant|Customer|"
         r"Date|Datum|Factuurdatum|Factuurnummer|Vervaldatum|Due\s*Date|"
@@ -195,13 +272,16 @@ def parse_pdf(pdf_path):
     # Zo'n regel (of een naam waarin 'Bill To' opduikt) is nooit de leverancier.
     BILLTO_RE = re.compile(r"\bbill\s*to\b|\bship\s*to\b", re.IGNORECASE)
 
-    if lines:
+    if lines and not lev.get("company_name"):
         # Loop door eerste 8 regels, pak eerste regel die niet gezicht hoort te zijn
         for ln in lines[:8]:
             ln_strip = ln.strip()
             if not ln_strip:
                 continue
             if SKIP_WORDS.search(ln_strip):
+                continue
+            # Losse watermerk-letters ('S', 'A', 'M', ...) zijn geen leverancier.
+            if len(ln_strip) <= 2 and ln_strip.replace(".", "").isalpha():
                 continue
             if KVK_RE.search(ln_strip) or BTW_RE.search(ln_strip) or IBAN_RE.search(ln_strip):
                 continue

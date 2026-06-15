@@ -17,6 +17,7 @@ from __future__ import annotations
 import os
 import tempfile
 import traceback
+from datetime import timedelta
 from pathlib import Path
 
 from flask import Flask, abort, jsonify, redirect, render_template, request, send_from_directory, session, url_for
@@ -41,6 +42,10 @@ app.config["MAX_CONTENT_LENGTH"] = 25 * 1024 * 1024  # 25MB max per PDF
 app.secret_key = os.environ.get("SECRET_KEY") or os.urandom(32)
 app.config["SESSION_COOKIE_HTTPONLY"] = True
 app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+# 'Ingelogd blijven': hoe lang een permanente sessie geldig blijft.
+# Werkt alleen over herstarts/deploys heen als SECRET_KEY vast in de env staat
+# (anders krijgt elke herstart een nieuwe sleutel en vervallen alle sessies).
+app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(days=30)
 app.register_blueprint(email_bp)
 
 
@@ -106,12 +111,27 @@ def login():
         p = request.form.get("password") or ""
         if _check_credentials(u, p):
             session["user"] = _AUTH_USERNAME
+            # 'Ingelogd blijven' aangevinkt -> permanente sessie (30 dagen),
+            # anders een gewone sessiecookie die vervalt bij browser sluiten.
+            session.permanent = bool(request.form.get("remember"))
             nxt = request.args.get("next") or request.form.get("next") or "/"
             if not nxt.startswith("/"):
                 nxt = "/"
             return redirect(nxt)
         fout = "Onjuiste gebruikersnaam of wachtwoord."
-    return render_template("login.html", fout=fout, nxt=request.args.get("next") or "/")
+    # Prefill de gebruikersnaam (geen geheim) zodat je die niet hoeft te typen.
+    # Na een mislukte poging tonen we wat er net is ingevuld, anders de
+    # geconfigureerde USERNAME. Het wachtwoord vullen we bewust NIET voor: dat
+    # hoort in je browser-wachtwoordmanager (autocomplete="current-password").
+    voorgevulde_gebruiker = (
+        request.form.get("username") if request.method == "POST" else _AUTH_USERNAME
+    )
+    return render_template(
+        "login.html",
+        fout=fout,
+        nxt=request.args.get("next") or "/",
+        username=voorgevulde_gebruiker or "",
+    )
 
 
 @app.route("/logout")

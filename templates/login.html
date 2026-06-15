@@ -29,6 +29,9 @@
   .err{margin-top:12px;background:var(--bad-bg);color:var(--bad);padding:8px 11px;
        border-radius:8px;font-size:13px}
   .foot{margin-top:14px;font-size:12px;color:var(--muted);text-align:center}
+  .remember{display:flex;align-items:center;gap:8px;margin-top:14px;
+            font-size:13px;color:var(--ink);cursor:pointer;user-select:none}
+  .remember input{width:auto;margin:0;accent-color:var(--accent)}
 </style>
 </head>
 <body>
@@ -40,9 +43,14 @@
   {% if fout %}<div class="err">{{ fout }}</div>{% endif %}
   <input type="hidden" name="next" value="{{ nxt|e }}">
   <label for="u">Gebruikersnaam</label>
-  <input id="u" name="username" autocomplete="username" autofocus required>
+  <input id="u" name="username" value="{{ username|e }}" autocomplete="username" required>
   <label for="p">Wachtwoord</label>
-  <input id="p" name="password" type="password" autocomplete="current-password" required>
+  <input id="p" name="password" type="password" autocomplete="current-password"
+         {% if username %}autofocus{% endif %} required>
+  <label class="remember">
+    <input type="checkbox" name="remember" value="1" checked>
+    Ingelogd blijven
+  </label>
   <button class="btn" type="submit">Inloggen</button>
   <div class="foot">Veilig opgeslagen in jouw eigen instance.</div>
 </form>

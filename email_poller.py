@@ -1,4 +1,4 @@
-﻿"""
+"""
 email_poller.py - Haal inkoopfacturen op uit een emailpostvak (IMAP).
 
 Bouwbedrijven sturen facturen door naar een vast e-mailadres.
@@ -123,7 +123,9 @@ def _to_book_payload(parsed: dict) -> dict:
 def _verwerk_pdf(naam: str, data: bytes, afzender: str, onderwerp: str, boeking_type: str) -> dict:
     """Sla PDF op, parse en boek. Geeft resultaat-dict terug."""
     safe_naam = Path(naam).name or "bijlage.pdf"
-    target = UPLOAD_DIR / safe_naam
+    # Uniek bewaren zodat een tweede 'bijlage.pdf' geen eerdere overschrijft.
+    stored_naam = f"{os.urandom(4).hex()}_{safe_naam}"
+    target = UPLOAD_DIR / stored_naam
     target.write_bytes(data)
 
     try:
@@ -131,9 +133,12 @@ def _verwerk_pdf(naam: str, data: bytes, afzender: str, onderwerp: str, boeking_
         if not parsed.get("factuurnummer") or not parsed.get("datum"):
             return {"bestand": safe_naam, "ok": False, "error": "Kon factuurnummer of datum niet lezen"}
 
-        # Dubbele boeking voorkomen
-        leverancier_naam = (parsed.get("leverancier") or {}).get("naam", "")
-        if inbox_module.is_duplicate(parsed["factuurnummer"], leverancier_naam):
+        # Dubbele boeking voorkomen (factuurnummer+leverancier, of bij ontbrekend
+        # nummer fallback op leverancier+datum+bedrag).
+        leverancier_naam = (parsed.get("leverancier") or {}).get("company_name", "")
+        if inbox_module.find_duplicate(parsed["factuurnummer"], leverancier_naam,
+                                       parsed.get("datum", ""),
+                                       parsed.get("totaal_incl_btw")):
             print(f"[email] ⚠ Overgeslagen (al ingeboekt): {parsed['factuurnummer']} – {leverancier_naam}")
             return {"bestand": safe_naam, "ok": True, "dubbel": True,
                     "factuurnummer": parsed["factuurnummer"]}
@@ -153,6 +158,7 @@ def _verwerk_pdf(naam: str, data: bytes, afzender: str, onderwerp: str, boeking_
         inbox_module.add({
             "doc_id": factuur.get("id"),
             "bestand": safe_naam,
+            "bestand_opslag": stored_naam,
             "bron": "email",
             "afzender": afzender,
             "onderwerp": onderwerp,

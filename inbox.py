@@ -57,22 +57,43 @@ def list_items() -> list:
     return _load()
 
 
-def is_duplicate(factuurnummer: str, leverancier: str = "") -> bool:
-    """Controleer of dit factuurnummer al eerder is ingeboekt.
+def _norm(s) -> str:
+    return (s or "").strip().lower()
 
-    Vergelijkt op factuurnummer + leverancier (genormaliseerd).
-    Zo voorkom je dubbele boekingen bij email-retries of handmatig opnieuw uploaden.
+
+def find_duplicate(factuurnummer: str, leverancier: str = "",
+                   datum: str = "", totaal: float | None = None) -> dict | None:
+    """Geef de eerder geboekte factuur terug als deze een duplicaat lijkt, anders None.
+
+    Twee herkenningen:
+      1. zelfde factuurnummer + (zelfde of onbekende) leverancier  -> sterk signaal
+      2. fallback als factuurnummer ontbreekt/onbetrouwbaar: zelfde leverancier
+         + zelfde datum + (vrijwel) zelfde totaalbedrag
+
+    Zo voorkom je dubbel boeken bij e-mail-retries of opnieuw uploaden.
     """
+    fn, lv, dt = _norm(factuurnummer), _norm(leverancier), _norm(datum)
+    for rec in _load():
+        rec_fn = _norm(rec.get("factuurnummer"))
+        rec_lv = _norm(rec.get("leverancier"))
+        # 1. factuurnummer-match (leverancier mag matchen of onbekend zijn)
+        if fn and rec_fn == fn and (not lv or not rec_lv or rec_lv == lv):
+            return rec
+        # 2. fallback: zelfde leverancier + datum + bedrag
+        if totaal is not None and lv and rec_lv == lv and dt and _norm(rec.get("datum")) == dt:
+            try:
+                if abs(float(rec.get("totaal_incl_btw")) - float(totaal)) < 0.02:
+                    return rec
+            except (TypeError, ValueError):
+                pass
+    return None
+
+
+def is_duplicate(factuurnummer: str, leverancier: str = "") -> bool:
+    """Backwards-compatibele wrapper rond find_duplicate (alleen factuurnummer)."""
     if not factuurnummer:
         return False
-    fn = factuurnummer.strip().lower()
-    lv = (leverancier or "").strip().lower()
-    for rec in _load():
-        rec_fn = (rec.get("factuurnummer") or "").strip().lower()
-        rec_lv = (rec.get("leverancier") or "").strip().lower()
-        if rec_fn == fn and (not lv or not rec_lv or rec_lv == lv):
-            return True
-    return False
+    return find_duplicate(factuurnummer, leverancier) is not None
 
 
 def update(item_id: str, **velden) -> dict | None:

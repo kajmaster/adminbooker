@@ -140,7 +140,7 @@ function select(i){
     +'<dl class="kv"><dt>Factuurnr.</dt><dd>'+esc(it.factuurnummer||'–')+'</dd>'
     +'<dt>Datum</dt><dd>'+esc(it.datum||'–')+'</dd>'
     +'<dt>Totaal incl.</dt><dd>'+fmtEur(it.totaal_incl_btw)+'</dd>'
-    +'<dt>Bestand</dt><dd>'+esc(it.bestand||'–')+'</dd></dl>'
+    +'<dt>Origineel</dt><dd>'+(it.bestand_opslag?'<a href="/api/origineel/'+encodeURIComponent(it.bestand_opslag)+'" target="_blank" rel="noopener">'+esc(it.bestand||'PDF')+' ↗</a>':esc(it.bestand||'–'))+'</dd></dl>'
     +'<table class="lines"><thead><tr><th>Omschrijving</th><th class="r">Aantal</th><th class="r">Prijs</th><th class="r">BTW</th><th>Grootboek</th></tr></thead><tbody>'+lines+'</tbody></table>'
     +'<button class="btn primary" id="akkBtn"'+(akk?' disabled':'')+'>'+(akk?'✓ Op akkoord':'Markeer akkoord')+'</button>'
     +'</div>';

@@ -7,3 +7,10 @@ data/
 .deps_KAJ
 .deps_installed
 *.clean
+tools/accuracy_report.json
+tests/sample_run/run_data/
+tests/sample_run/bookings_*.json
+tests/sample_run/grade_*.json
+tests/sample_run/subagent_review_*.json
+tests/sample_run/survey.json
+tests/sample_run/*.log

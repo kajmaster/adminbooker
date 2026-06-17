@@ -231,9 +231,12 @@ def api_book():
     if not f.filename.lower().endswith(".pdf"):
         return jsonify({"ok": False, "error": "Alleen PDF toegestaan"}), 400
 
-    # tijdelijk opslaan
+    # Origineel bewaren onder een UNIEKE naam (bewaarplicht/audit): zo overschrijft
+    # een tweede 'factuur.pdf' nooit een eerdere, en blijft elke boeking-bijlage
+    # terug te vinden via /api/origineel/<naam>.
     safe_name = Path(f.filename).name
-    target = UPLOAD_DIR / safe_name
+    stored_name = f"{os.urandom(4).hex()}_{safe_name}"
+    target = UPLOAD_DIR / stored_name
     f.save(str(target))
 
     try:
@@ -246,6 +249,38 @@ def api_book():
                 "error": "Kon factuurnummer of datum niet uit PDF halen",
                 "parsed": {k: v for k, v in parsed.items() if not k.startswith("_raw")},
             }), 422
+
+        # 1b. Dubbele-factuur-check (alleen inkoop). Voorkomt dat dezelfde factuur
+        # twee keer wordt geboekt bij e-mail-retries of opnieuw uploaden. Met
+        # form-veld force=true boek je bewust toch (bv. terechte herboeking).
+        force = (request.form.get("force") or "").strip().lower() == "true"
+        if boeking_type == "inkoop" and not force:
+            dup = inbox.find_duplicate(
+                parsed.get("factuurnummer", ""),
+                (parsed.get("leverancier") or {}).get("company_name", ""),
+                parsed.get("datum", ""),
+                parsed.get("totaal_incl_btw"),
+            )
+            if dup:
+                # Geen boeking -> bewaar het zwevende origineel niet.
+                try:
+                    target.unlink(missing_ok=True)
+                except OSError:
+                    pass
+                return jsonify({
+                    "ok": False,
+                    "stage": "duplicate",
+                    "error": "Deze factuur lijkt al geboekt te zijn.",
+                    "duplicate": {
+                        "factuurnummer": dup.get("factuurnummer"),
+                        "leverancier": dup.get("leverancier"),
+                        "datum": dup.get("datum"),
+                        "totaal_incl_btw": dup.get("totaal_incl_btw"),
+                        "doc_url": dup.get("doc_url"),
+                        "geboekt_op": dup.get("aangemaakt"),
+                    },
+                    "hint": "Stuur force=true mee om toch te boeken.",
+                }), 409
 
         # 2. boek in Moneybird (inkoop of verkoop)
         payload = _to_book_payload(parsed)
@@ -289,6 +324,7 @@ def api_book():
                 inbox.add({
                     "doc_id": factuur.get("id"),
                     "bestand": safe_name,
+                    "bestand_opslag": stored_name,  # unieke naam voor /api/origineel
                     "leverancier": (boeking_trace.get("contact") or {}).get("naam"),
                     "factuurnummer": factuur.get("reference") or factuur.get("invoice_number"),
                     "datum": factuur.get("date") or factuur.get("invoice_date"),
@@ -420,6 +456,17 @@ def api_sandbox_runs():
 @app.route("/api/sandbox/pdf/<path:name>")
 def api_sandbox_pdf(name):
     """Serveer een eerder geuploade PDF terug (voor de review-preview)."""
+    safe = Path(name).name
+    if not (UPLOAD_DIR / safe).exists():
+        abort(404)
+    return send_from_directory(str(UPLOAD_DIR), safe)
+
+
+@app.route("/api/origineel/<path:name>")
+def api_origineel(name):
+    """Serveer het originele factuur-PDF terug (bewaarplicht/audit). Het postvak
+    linkt hiernaar per boeking, zodat het bronstuk altijd terugvindbaar is —
+    ook al kan Rompslomp de bijlage niet via de API opslaan. Alleen-lezen."""
     safe = Path(name).name
     if not (UPLOAD_DIR / safe).exists():
         abort(404)

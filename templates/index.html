@@ -554,13 +554,14 @@
     return n.endsWith(".pdf");
   }
 
-  async function bookFile(file){
+  async function bookFile(file, force){
     if(!file || !fileOkForMode(file)) return;
     const cardId = busyCard(file.name);
     const fd = new FormData();
     fd.append("file", file);
     fd.append("type", mode);
     fd.append("provider", document.getElementById("provider-select").value);
+    if(force) fd.append("force", "true");
     const start = performance.now();
     try{
       const r = await fetch("/api/book", { method: "POST", body: fd });
@@ -576,12 +577,36 @@
         stats.count += 1;
         stats.durations.push(dur);
         updateStats();
+      } else if(j.stage === "duplicate"){
+        duplicateCard(cardId, file, j.duplicate || {});
       } else {
         errorCard(cardId, file.name, j.error || "Onbekende fout", j.parsed);
       }
     }catch(e){
       errorCard(cardId, file.name, "Server bereikt niet: " + e.message);
     }
+  }
+
+  function duplicateCard(id, file, dup){
+    const el = document.getElementById(id);
+    if(!el) return;
+    const btnId = id + "-force";
+    el.innerHTML =
+      '<div class="card-row">' +
+        '<div class="card-icon" style="background:var(--warning-bg,#fef3c7);color:var(--warning,#b45309)">' +
+          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"></path></svg></div>' +
+        '<div class="card-body">' +
+          '<div style="font-weight:600">Mogelijk dubbele factuur</div>' +
+          '<div style="font-size:13px;color:var(--text-subtle);margin-top:2px">' +
+            escapeHtml(file.name) + ' lijkt al geboekt' +
+            (dup.factuurnummer ? ' (nr ' + escapeHtml(dup.factuurnummer) + ', ' + escapeHtml(dup.datum || '') + ')' : '') +
+            '.</div>' +
+          (dup.doc_url ? '<a href="' + escapeHtml(dup.doc_url) + '" target="_blank" rel="noopener" style="font-size:13px">Bekijk bestaande boeking →</a>' : '') +
+          '<div style="margin-top:10px"><button id="' + btnId + '" class="btn-secondary" style="font-size:13px">Toch boeken</button></div>' +
+        '</div>' +
+      '</div>';
+    const btn = document.getElementById(btnId);
+    if(btn) btn.onclick = () => bookFile(file, true);
   }
 
   function bankCard(id, filename, data, durationMs){

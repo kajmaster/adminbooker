@@ -132,26 +132,48 @@ BTW_META_RE = re.compile(
 BTW_VERLEGD_RE = re.compile(r"BTW\s*verlegd|VAT\s*reverse\s*charged|reverse\s*charge", re.IGNORECASE)
 
 
-def _leverancier_uit_kolommen(words):
-    """Ontwar een twee-koloms 'From ... Bill To'-kop met behulp van woord-posities.
+# Anker-woorden voor een twee-koloms kop: leverancier/verkoper staat links,
+# klant/afnemer rechts (NL + EN). Voor 'Bill To' is het anker 'bill'.
+_KOLOM_LINKS_RE = re.compile(
+    r"^(from|verkoper|afzender|leverancier|seller|sender|vendor)$", re.IGNORECASE
+)
+_KOLOM_RECHTS_RE = re.compile(
+    r"^(bill|ship|sold|klant|afnemer|koper|customer)$", re.IGNORECASE
+)
 
-    In zulke layouts lopen de leverancier (links, onder 'From') en de klant
-    (rechts, onder 'Bill To') in de platte tekst door elkaar, en plakken losse
-    watermerk-letters ('S','A','M','P','L','E') ertussen. We pakken hier de
+
+def _leverancier_uit_kolommen(words):
+    """Ontwar een twee-koloms kop (leverancier links, klant rechts) via
+    woord-posities.
+
+    Herkent zowel Engelse koppen ('From ... Bill To') als Nederlandse
+    ('Verkoper ... Klant', 'Afzender ... Afnemer'). In zulke layouts lopen de
+    leverancier (linkerkolom) en de klant (rechterkolom) in de platte tekst
+    door elkaar, en plakken losse watermerk-letters ('S','A','M','P','L','E'
+    of 'V','O','O','R','B','E','E','L','D') ertussen. We pakken hier de
     linkerkolom op x-positie en geven (company_name, [adresregels]) terug.
 
     Retourneert (None, []) als er geen herkenbare twee-koloms-kop is.
     """
     if not words:
         return None, []
+    # Zoek een anker-paar op dezelfde kopregel: een links-anker (leverancier)
+    # met een rechts-anker (klant) errechts van. Dat dubbele, naast-elkaar-
+    # staande signaal kenmerkt een twee-koloms-kop en voorkomt valse matches
+    # met losse woorden elders op de pagina.
     from_w = bill_w = None
-    for w in words:
-        t = (w.get("text") or "").strip().lower()
-        if t == "from" and from_w is None:
-            from_w = w
-        elif t == "bill" and bill_w is None:
-            bill_w = w
-    if not from_w or not bill_w or bill_w["x0"] <= from_w["x0"]:
+    for lw in words:
+        if not _KOLOM_LINKS_RE.match((lw.get("text") or "").strip()):
+            continue
+        for rw in words:
+            if (_KOLOM_RECHTS_RE.match((rw.get("text") or "").strip())
+                    and rw["x0"] > lw["x1"]
+                    and abs(rw["top"] - lw["top"]) <= 4):
+                from_w, bill_w = lw, rw
+                break
+        if from_w:
+            break
+    if not from_w or not bill_w:
         return None, []
 
     grens = (from_w["x1"] + bill_w["x0"]) / 2.0
@@ -183,6 +205,101 @@ def _leverancier_uit_kolommen(words):
     if not regels:
         return None, []
     return regels[0][:100], regels[1:]
+
+
+# Labels die het LEVERANCIER-blok aankondigen (NL + EN). De naam staat op
+# dezelfde regel achter de dubbele punt, of op de regels eronder. Dubbele punt
+# is verplicht zodat 'Van Dijk Bouwgroep' niet als label 'Van:' wordt gezien.
+SUPPLIER_LABEL_RE = re.compile(
+    r"^\s*(?:leverancier|afzender|verkoper|supplier|sender|seller|vendor|van)"
+    r"\b(?:\s*/\s*\w+)?\s*:\s*(.*)$",
+    re.IGNORECASE,
+)
+# Labels die het AFNEMER/klant-blok aankondigen: einde van het leveranciersblok.
+CUSTOMER_LABEL_RE = re.compile(
+    r"^\s*(?:afnemer|klant|koper|debiteur|customer|bill\s*to|ship\s*to|"
+    r"sold\s*to|factuuradres|aan|to)\b\s*:?",
+    re.IGNORECASE,
+)
+# Meta-regels (factuurnummer/datum/…) markeren ook het einde van het blok.
+_META_LABEL_RE = re.compile(
+    r"^\s*(?:factuurnummer|factuurdatum|vervaldatum|invoice|date|referentie|"
+    r"reference|betalings?termijn|betalingskenmerk|order)\b",
+    re.IGNORECASE,
+)
+# Sample-/watermerk-/disclaimerteksten: dit is NOOIT een leveranciersnaam.
+WATERMARK_RE = re.compile(
+    r"\bsample\b|\bspecimen\b|geen\s+echte|niet[\s-]*geldig|demonstratie|"
+    r"voorbeeld\s*factuur|test[\s-]*factuur|uitsluitend\s+voor\s+(?:test|demo)|"
+    r"\bproforma\b|pro\s*forma",
+    re.IGNORECASE,
+)
+# Doc-type-woorden die nooit een contactnaam zijn. De samengestelde vormen
+# (VERKOOPFACTUUR/INKOOPFACTUUR/CREDITFACTUUR/CREDITNOTA) staan vooraan zodat de
+# alternation ze als geheel pakt — anders matcht \bFACTUUR\b er niet in.
+_DOC_MARKER = (
+    r"(VERKOOPFACTUUR|INKOOPFACTUUR|CREDITFACTUUR|CREDITNOTA|"
+    r"FACTUUR|INVOICE|FACTURE|RECHNUNG|NOTA|BILL|RECEIPT|KWITANTIE)"
+)
+
+
+def _schoon_leveranciernaam(naam):
+    """Strip doc-markers ('FACTUUR'/'INVOICE'/…) van een kandidaat-naam af."""
+    naam = naam.strip()[:100]
+    naam = re.sub(r"\s*\b" + _DOC_MARKER + r"\b.*$", "", naam,
+                  flags=re.IGNORECASE).strip()
+    naam = re.sub(r"^" + _DOC_MARKER + r"\s*[#:\-]?\s*", "", naam,
+                  flags=re.IGNORECASE).strip()
+    return naam
+
+
+def _leverancier_uit_label(lines):
+    """Zoek het leveranciersblok via een expliciet label ('Leverancier:',
+    'Afzender:', 'Supplier:', …) en geef (company_name, [adresregels]) terug.
+
+    Dit is het sterkste signaal op NL-facturen: het negeert een sample-/
+    watermerkregel bovenaan ('SAMPLE - GEEN ECHTE FACTUUR') én het afnemer-blok,
+    en pakt de échte leverancier. (None, []) als er geen label gevonden is.
+    """
+    for i, ln in enumerate(lines):
+        m = SUPPLIER_LABEL_RE.match(ln)
+        if not m:
+            continue
+        blok = []
+        rest = (m.group(1) or "").strip()
+        if rest:
+            blok.append(rest)
+        for nxt in lines[i + 1:]:
+            s = nxt.strip()
+            if not s or CUSTOMER_LABEL_RE.match(s) or _META_LABEL_RE.match(s):
+                break
+            blok.append(s)
+            if len(blok) >= 6:
+                break
+        for j, b in enumerate(blok):
+            naam = _schoon_leveranciernaam(b)
+            if naam and len(naam) > 1 and not WATERMARK_RE.search(naam):
+                return naam, blok[j + 1:]
+        return None, []
+    return None, []
+
+
+def _vul_leverancier_adres(lev, adresregels):
+    """Vul address1/zipcode/city op basis van losse adresregels (NL-stijl).
+    KvK/BTW/IBAN/e-mail/telefoon worden overgeslagen: die haalt parse_pdf
+    globaal uit de volledige tekst."""
+    for a in adresregels:
+        a = a.strip()
+        if not a:
+            continue
+        mzc = re.match(r"^\s*(\d{4}\s*[A-Z]{2})\s+([A-Za-z\.\-' ]+?)\s*$", a)
+        if mzc and "city" not in lev:
+            lev["zipcode"] = mzc.group(1).strip()
+            lev["city"] = mzc.group(2).strip()
+        elif "address1" not in lev and not re.search(
+            r"@|kvk|btw|vat|iban|email|telefoon|\btel\b", a, re.IGNORECASE
+        ):
+            lev["address1"] = a
 
 
 def parse_pdf(pdf_path):
@@ -245,25 +362,28 @@ def parse_pdf(pdf_path):
     lines = [ln.rstrip() for ln in text.splitlines() if ln.strip()]
     lev = out["leverancier"]
 
-    # Voorkeur: twee-koloms 'From ... Bill To'-layout ontwarren via x-posities.
+    # Voorkeur 1: expliciet label 'Leverancier:' / 'Afzender:' / 'Supplier:'.
+    # Sterkste signaal op NL-facturen; negeert sample-/watermerkregels bovenaan
+    # en het afnemer-blok, en pakt de échte leverancier.
+    lbl_naam, lbl_adres = _leverancier_uit_label(lines)
+    if lbl_naam:
+        lev["company_name"] = lbl_naam
+        out["_confidence"]["leverancier_naam"] = 0.95
+        _vul_leverancier_adres(lev, lbl_adres)
+
+    # Voorkeur 2: twee-koloms 'From ... Bill To'-layout ontwarren via x-posities.
     # Dit voorkomt dat losse watermerk-letters of de Bill-To-naam als leverancier
     # worden opgepikt.
-    kol_naam, kol_adres = _leverancier_uit_kolommen(first_words)
-    if kol_naam:
-        lev["company_name"] = kol_naam
-        out["_confidence"]["leverancier_naam"] = 0.9
-        for a in kol_adres:
-            mzc = re.match(r"^\s*(\d{4}\s*[A-Z]{2})\s+([A-Za-z\.\-' ]+?)\s*$", a)
-            if mzc and "city" not in lev:
-                lev["zipcode"] = mzc.group(1).strip()
-                lev["city"] = mzc.group(2).strip()
-            elif "address1" not in lev and not re.search(
-                r"@|kvk|btw|vat|iban|email", a, re.IGNORECASE
-            ):
-                lev["address1"] = a
+    if not lev.get("company_name"):
+        kol_naam, kol_adres = _leverancier_uit_kolommen(first_words)
+        if kol_naam:
+            lev["company_name"] = kol_naam
+            out["_confidence"]["leverancier_naam"] = 0.9
+            _vul_leverancier_adres(lev, kol_adres)
 
     SKIP_WORDS = re.compile(
-        r"^(FACTUUR|INVOICE|From|Bill\s*to|Ship\s*to|Sold\s*to|Klant|Customer|"
+        r"^(VERKOOPFACTUUR|INKOOPFACTUUR|CREDITFACTUUR|CREDITNOTA|FACTUUR|INVOICE|"
+        r"From|Bill\s*to|Ship\s*to|Sold\s*to|Verkoper|Afzender|Klant|Afnemer|Customer|"
         r"Date|Datum|Factuurdatum|Factuurnummer|Vervaldatum|Due\s*Date|"
         r"Aan|To|#|Betreft|Reference|Pagina)\b|^#",
         re.IGNORECASE,
@@ -292,13 +412,16 @@ def parse_pdf(pdf_path):
             if re.match(r"^\s*\d{4}\s*[A-Z]{2}\s*$", ln_strip):
                 continue
             naam = ln_strip[:100]
-            # Doc-markers ("FACTUUR", "INVOICE", ...) eraf — die belanden soms
-            # op dezelfde regel als de leveranciersnaam doordat naast elkaar
-            # geplaatste tabelcellen in de PDF op één tekstregel terechtkomen.
-            _DOC = r"(FACTUUR|INVOICE|FACTURE|RECHNUNG|NOTA|BILL|RECEIPT|KWITANTIE)"
-            naam = re.sub(r"\s*\b" + _DOC + r"\b.*$", "", naam, flags=re.IGNORECASE).strip()
-            naam = re.sub(r"^" + _DOC + r"\s*[#:\-]?\s*", "", naam, flags=re.IGNORECASE).strip()
+            # Doc-markers ("VERKOOPFACTUUR"/"FACTUUR"/"INVOICE"/...) eraf — die
+            # belanden soms op dezelfde regel als de leveranciersnaam doordat
+            # naast elkaar geplaatste tabelcellen in de PDF op één tekstregel
+            # terechtkomen, of een kale doc-type-regel staat bovenaan.
+            naam = _schoon_leveranciernaam(naam)
             if not naam:
+                continue
+            # Sample-/watermerk-/disclaimerregels zijn nooit de leverancier
+            # (bv. 'SAMPLE - GEEN ECHTE FACTUUR' bovenaan een testfactuur).
+            if WATERMARK_RE.search(naam):
                 continue
             # 'From'/'Bill To'-koprijen of restanten daarvan zijn geen leverancier.
             if BILLTO_RE.search(naam) or naam.strip().lower() in ("from", "bill to", "ship to"):

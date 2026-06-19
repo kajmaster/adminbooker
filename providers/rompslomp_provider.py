@@ -321,9 +321,13 @@ class RompslompProvider(AccountingProvider):
         """
         Rompslomp POST /expenses accepteert:
           - date, state, type_account_id, currency, contact_id, invoice_lines
-        Niet ondersteund: due_date, invoice_number, _publish trigger.
         Direct publiceren via state='published'.
         Het grootboek staat op factuur-niveau (type_account_id).
+
+        Factuurnummer: het Expense-model markeert invoice_number als 'read only',
+        maar het aanmaak-endpoint is niet gedocumenteerd. We proberen het nummer
+        daarom mee te sturen; weigert Rompslomp dat, dan boeken we alsnog zonder
+        (de boeking mag nooit op het factuurnummer stuklopen).
         """
         details = payload.get("details_attributes", [])
         # Factuur-grootboek: pak het account_id uit de eerste regel als default
@@ -348,7 +352,21 @@ class RompslompProvider(AccountingProvider):
             "invoice_lines": self._map_invoice_lines(details),
         }
         rs_payload = {k: v for k, v in rs_payload.items() if v is not None}
-        resp = self._request("POST", "expenses.json", json={"expense": rs_payload})
+
+        # Factuurnummer van de leverancier meegeven (best effort).
+        factuurnr = payload.get("reference") or payload.get("factuurnummer")
+        if factuurnr:
+            rs_payload["invoice_number"] = str(factuurnr)
+
+        try:
+            resp = self._request("POST", "expenses.json", json={"expense": rs_payload})
+        except ProviderError:
+            # Mogelijk weigert Rompslomp invoice_number (read-only). Opnieuw zonder.
+            if "invoice_number" in rs_payload:
+                rs_payload.pop("invoice_number", None)
+                resp = self._request("POST", "expenses.json", json={"expense": rs_payload})
+            else:
+                raise
         if isinstance(resp, dict) and "expense" in resp:
             return resp["expense"]
         return resp

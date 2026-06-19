@@ -328,6 +328,18 @@ async function startBooking(){
 
 /* ---------- result list ---------- */
 function isDoubt(it){ return it.status==='booked' && it.booked && it.booked.boeking && it.booked.boeking.needs_review; }
+// Duplicaat-waarschuwing binnen deze run: zelfde factuurnummer + leverancier.
+function _dupKey(it){
+  if(!it.booked) return '';
+  const nr = (it.booked.factuurnummer||'').toString().trim().toLowerCase();
+  const lev = (it.booked.leverancier||it.booked.contact_naam||'').toString().trim().toLowerCase();
+  return nr ? (nr+'|'+lev) : '';
+}
+function isDuplicate(it){
+  const key = _dupKey(it);
+  if(!key) return false;
+  return items.filter(x=>x.status!=='pending' && _dupKey(x)===key).length > 1;
+}
 function renderList(){
   const onlyDoubt = $('#onlyDoubt') && $('#onlyDoubt').checked;
   let booked = items.filter(i=>i.status!=='pending');
@@ -343,9 +355,10 @@ function renderList(){
       cls = allok?'r-ok':'r-bad'; ico = allok?'✓':'✗'; tag = allok?'klopt':'fout';
     } else { cls='s-booked'; ico='•'; tag='te beoordelen'; }
     const warn = isDoubt(it)? ' <span class="warn" title="AI was niet zeker">⚠</span>':'';
+    const dup = isDuplicate(it)? ' <span class="warn" title="Zelfde factuurnummer + leverancier al in deze run — mogelijk dubbel">⚠ dubbel</span>':'';
     return '<div class="li '+cls+(idx===selected?' sel':'')+'" data-i="'+idx+'">'
       + '<span class="ico">'+ico+'</span>'
-      + '<span class="nm">'+esc(it.name)+warn+'</span>'
+      + '<span class="nm">'+esc(it.name)+warn+dup+'</span>'
       + '<span class="tag">'+tag+'</span></div>';
   }).join('');
   $('#list').querySelectorAll('.li').forEach(el=>el.addEventListener('click',()=>select(+el.dataset.i)));

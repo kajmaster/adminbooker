@@ -20,6 +20,8 @@ Omgevingsvariabelen:
 """
 from __future__ import annotations
 
+import base64
+import binascii
 import hashlib
 import hmac
 import os
@@ -158,4 +160,121 @@ def inbound_email():
             traceback.print_exc()
             resultaten.append({"bestand": safe_name, "ok": False, "error": str(e)})
 
+    return jsonify({"ok": True, "resultaten": resultaten}), 200
+
+
+# ---------- gedeelde boek-helper + Power Automate (Outlook) endpoint ----------
+
+def _book_invoice_pdf(target: Path, afzender: str, onderwerp: str, boeking_type: str) -> dict:
+    """Parse + boek één PDF en zet 'm in het postvak. Met duplicaat-check zodat
+    een opnieuw doorgestuurde mail niet dubbel boekt. Retourneert een resultaat-dict."""
+    parsed = parse_pdf(target)
+    if not parsed.get("factuurnummer") or not parsed.get("datum"):
+        return {"bestand": target.name, "ok": False,
+                "error": "Kon factuurnummer of datum niet uit PDF halen"}
+
+    # Dubbele-factuur-check (zelfde leverancier + factuurnummer al geboekt).
+    lev_naam = (parsed.get("leverancier") or {}).get("company_name", "")
+    try:
+        dup = inbox_module.find_duplicate(
+            parsed.get("factuurnummer", ""), lev_naam,
+            parsed.get("datum", ""), parsed.get("totaal_incl_btw"))
+    except Exception:
+        dup = None
+    if dup:
+        return {"bestand": target.name, "ok": True, "dubbel": True,
+                "message": "Lijkt al geboekt — overgeslagen.",
+                "factuurnummer": dup.get("factuurnummer")}
+
+    payload = _to_book_payload(parsed)
+    if boeking_type == "verkoop":
+        factuur = boek_verkoop(payload, str(target), mark_open=True)
+        doc_type = "sales_invoice"
+    else:
+        factuur = boek(payload, str(target))
+        doc_type = "purchase_invoice"
+
+    provider = get_provider()
+    doc_url = provider.document_url(factuur["id"], doc_type)
+    boeking_trace = factuur.get("_boeking_trace") or {}
+    inbox_module.add({
+        "doc_id": factuur.get("id"),
+        "bestand": target.name,
+        "bron": "email",
+        "afzender": afzender,
+        "onderwerp": onderwerp,
+        "leverancier": (boeking_trace.get("contact") or {}).get("naam"),
+        "factuurnummer": factuur.get("reference") or factuur.get("invoice_number"),
+        "datum": factuur.get("date") or factuur.get("invoice_date"),
+        "totaal_incl_btw": boeking_trace.get("totaal_incl_btw"),
+        "doc_url": doc_url,
+        "provider": provider.name,
+        "provider_display": provider.display_name,
+        "regels": boeking_trace.get("regels", []),
+        "min_zekerheid": boeking_trace.get("min_zekerheid"),
+        "needs_review": bool(boeking_trace.get("needs_review")),
+        "status": "te_controleren" if boeking_trace.get("needs_review") else "akkoord",
+    })
+    return {"bestand": target.name, "ok": True,
+            "factuurnummer": factuur.get("reference") or factuur.get("invoice_number"),
+            "doc_url": doc_url}
+
+
+@bp.route("/webhook/powerautomate", methods=["POST"])
+def inbound_powerautomate():
+    """Inbound factuur vanuit Microsoft Power Automate (Outlook/Hotmail).
+
+    Power Automate-flow: 'Wanneer er een nieuwe e-mail binnenkomt (V3)' op het
+    postvak → HTTP POST naar dit endpoint met JSON:
+        { "from": "...", "subject": "...", "secret": "<token>",
+          "attachments": [ { "name": "factuur.pdf", "contentBytes": "<base64>" } ] }
+    De bijlage mag ook als losse velden (name + contentBytes) op top-niveau.
+
+    Beveiliging: zet POWERAUTOMATE_TOKEN in je env; geef die mee als header
+    X-Webhook-Token of als 'secret' in de body. Zonder token = open (alleen testen).
+    """
+    data = request.get_json(silent=True) or {}
+
+    token_env = os.environ.get("POWERAUTOMATE_TOKEN", "")
+    if token_env:
+        given = request.headers.get("X-Webhook-Token", "")
+        ok = (hmac.compare_digest(given, token_env)
+              or hmac.compare_digest(str(data.get("secret", "")), token_env))
+        if not ok:
+            return jsonify({"ok": False, "error": "Ongeldige token"}), 403
+
+    afzender = data.get("from") or data.get("afzender") or "outlook"
+    onderwerp = data.get("subject") or data.get("onderwerp") or ""
+
+    atts = data.get("attachments")
+    if not isinstance(atts, list):
+        atts = [data] if (data.get("contentBytes") or data.get("content")) else []
+
+    boeking_type = os.environ.get("EMAIL_BOEKING_TYPE", "inkoop").lower()
+    resultaten = []
+    for a in atts:
+        if not isinstance(a, dict):
+            continue
+        naam = a.get("name") or a.get("Name") or a.get("filename") or "factuur.pdf"
+        b64 = a.get("contentBytes") or a.get("ContentBytes") or a.get("content") or ""
+        if not b64 or not str(naam).lower().endswith(".pdf"):
+            continue
+        try:
+            raw = base64.b64decode(b64)
+        except (binascii.Error, ValueError):
+            resultaten.append({"bestand": naam, "ok": False, "error": "Ongeldige base64-bijlage"})
+            continue
+        safe_name = Path(naam).name
+        target = UPLOAD_DIR / safe_name
+        target.write_bytes(raw)
+        try:
+            resultaten.append(_book_invoice_pdf(target, afzender, onderwerp, boeking_type))
+        except ProviderError as e:
+            resultaten.append({"bestand": safe_name, "ok": False, "error": str(e)})
+        except Exception as e:
+            traceback.print_exc()
+            resultaten.append({"bestand": safe_name, "ok": False, "error": str(e)})
+
+    if not resultaten:
+        return jsonify({"ok": True, "message": "Geen PDF-bijlagen gevonden"}), 200
     return jsonify({"ok": True, "resultaten": resultaten}), 200

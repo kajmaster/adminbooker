@@ -243,6 +243,10 @@
         <a href="/ijk" title="Leer van je eigen geboekte facturen"
            style="font-size:13px;font-weight:600;color:#2563eb;text-decoration:none;
                   padding:6px 10px;border:1px solid #dbeafe;border-radius:8px">Leer van boekhouding</a>
+        <a href="#" id="email-poll-btn" title="Lees nieuwe facturen uit je e-mail en boek ze"
+           style="font-size:13px;font-weight:600;color:#fff;background:#2563eb;text-decoration:none;
+                  padding:6px 12px;border-radius:8px"
+           onclick="event.preventDefault();var b=this,t=b.textContent;b.textContent='Ophalen…';b.style.opacity=.7;fetch('/api/email/poll',{method:'POST'}).then(function(r){return r.json();}).then(function(j){if(j.ok){alert('Klaar: '+(j.verwerkt||0)+' geboekt, '+(j.overgeslagen||0)+' overgeslagen, '+(j.fouten||0)+' fout(en). Bekijk ze onder ‘Te controleren’.');}else{alert('Mislukt: '+(j.error||'onbekend'));}}).catch(function(e){alert('Fout: '+e);}).then(function(){b.textContent=t;b.style.opacity=1;});return false;">E-mails ophalen</a>
         {% if auth_on %}
         <a href="/logout" title="Uitloggen"
            style="font-size:13px;font-weight:500;color:#6b7280;text-decoration:none;

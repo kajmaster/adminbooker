@@ -215,6 +215,79 @@
       .dropzone{padding:40px 20px}
     }
   </style>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+  <style id="ds-light">
+    /* ============================================================
+       AdminBooker design-system laag — licht, futuristisch.
+       Sky/cyan highlights, ronde vormen, Space Grotesk koppen,
+       JetBrains Mono voor getallen. Alle markup/JS blijft gelijk.
+       ============================================================ */
+    :root{
+      --bg:#f5fafe; --bg-elev:#ffffff; --bg-soft:#f0f7ff;
+      --border:#e2e8f0; --border-strong:#cbd5e1; --border-accent:#7dd3fc;
+      --text:#0f172a; --text-muted:#475569; --text-subtle:#94a3b8;
+      --primary:#0f172a; --primary-hover:#1e293b;
+      --accent:#0ea5e9; --accent-soft:#e0f2fe;
+      --sky-400:#38bdf8; --sky-500:#0ea5e9; --cyan-400:#22d3ee;
+      --surface-tint:#f0f9ff;
+      --radius:14px; --radius-lg:16px;
+      --shadow-sm:0 1px 2px 0 rgba(15,23,42,.05);
+      --shadow:0 1px 3px 0 rgba(15,23,42,.07),0 1px 2px -1px rgba(15,23,42,.05);
+      --shadow-md:0 6px 16px -6px rgba(15,23,42,.12);
+      --shadow-lg:0 14px 40px -12px rgba(15,23,42,.16);
+      --glow-sky:0 0 0 1px rgba(125,211,252,.55),0 10px 34px -10px rgba(34,211,238,.40);
+      --ring:0 0 0 3px rgba(56,189,248,.35);
+    }
+    body{
+      background:
+        radial-gradient(900px 460px at 82% -160px, rgba(34,211,238,.10), transparent 70%),
+        radial-gradient(760px 420px at 10% -120px, rgba(56,189,248,.10), transparent 70%),
+        var(--bg);
+      background-attachment:fixed;
+    }
+    .topbar{border-bottom:1px solid var(--border)}
+    .brand-name{font-family:'Space Grotesk',Inter,sans-serif;letter-spacing:.02em;font-weight:600}
+    .brand-logo{background:linear-gradient(135deg,#0ea5e9,#22d3ee);
+      box-shadow:0 6px 18px -6px rgba(34,211,238,.6),inset 0 0 0 1px rgba(255,255,255,.25)}
+    .status-pill{border-radius:999px;background:var(--bg-elev);border:1px solid var(--border);box-shadow:var(--shadow-sm)}
+    .status-pill.ok .dot{box-shadow:0 0 0 3px rgba(52,211,153,.18)}
+    .provider-select{border-radius:999px}
+    .provider-select:focus{outline:none;border-color:var(--border-accent);box-shadow:var(--ring)}
+
+    .hero h1{font-family:'Space Grotesk',Inter,sans-serif;font-size:40px;letter-spacing:-0.03em;color:#0f172a}
+    @media(max-width:640px){.hero h1{font-size:28px}}
+    .hero p{color:var(--text-muted)}
+
+    .mode-toggle{background:var(--surface-tint);border:1px solid var(--border)}
+    .mode-btn.active{background:#fff;color:var(--text);box-shadow:var(--shadow-sm)}
+
+    .stat{border-radius:var(--radius-lg);box-shadow:var(--shadow-sm);
+      transition:transform .2s,box-shadow .2s,border-color .2s}
+    .stat:hover{transform:translateY(-3px);border-color:var(--border-accent);box-shadow:var(--glow-sky)}
+    .stat .value{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:24px;color:#0f172a}
+    .stat .label{color:var(--text-subtle)}
+
+    .dropzone{background:var(--surface-tint);border:2px dashed rgba(56,189,248,.45);border-radius:24px;transition:all .18s}
+    .dropzone:hover{border-color:var(--sky-500);background:#eaf6ff}
+    .dropzone.is-drag,.dropzone.dragover,.dropzone.is-busy{border-color:var(--sky-500);background:#e0f2fe;box-shadow:var(--glow-sky)}
+    .dropzone-icon{background:linear-gradient(135deg,#bae6fd,#a5f3fc);color:#0369a1;box-shadow:inset 0 0 0 1px rgba(56,189,248,.4)}
+    .dropzone-title{color:#0f172a}
+    .dropzone-hint{color:var(--text-subtle)}
+
+    .btn-primary{background:var(--primary);box-shadow:0 8px 22px -10px rgba(15,23,42,.5);
+      transition:transform .15s,box-shadow .15s,filter .15s}
+    .btn-primary:hover{transform:translateY(-1px);box-shadow:0 12px 28px -10px rgba(15,23,42,.55),0 0 0 1px rgba(56,189,248,.4)}
+
+    .card{border-radius:var(--radius-lg);box-shadow:var(--shadow-sm);
+      transition:transform .2s,box-shadow .2s,border-color .2s}
+    .card:hover{transform:translateY(-3px);border-color:var(--border-accent);box-shadow:var(--glow-sky)}
+    .card-link{color:var(--sky-500)}
+    .spinner{border-top-color:var(--sky-500)}
+
+    @media(prefers-reduced-motion:reduce){
+      .stat,.card,.btn-primary{transition:none}
+    }
+  </style>
 </head>
 <body>
   <div class="app">

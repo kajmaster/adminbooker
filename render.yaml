@@ -1,0 +1,28 @@
+services:
+  - type: web
+    name: adminbooker
+    env: python
+    region: frankfurt
+    plan: starter
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app --bind 0.0.0.0:$PORT --workers 2 --timeout 120
+    healthCheckPath: /api/health
+    envVars:
+      - key: ACCOUNTING_PROVIDER
+        value: moneybird
+      - key: APP_USERNAME
+        value: admin
+      # Vul deze in via het Render dashboard (Settings → Environment):
+      - key: APP_PASSWORD
+        sync: false
+      - key: SECRET_KEY
+        generateValue: true
+      - key: MONEYBIRD_API_KEY
+        sync: false
+      - key: MONEYBIRD_ADMINISTRATION_ID
+        sync: false
+      # Optioneel:
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false

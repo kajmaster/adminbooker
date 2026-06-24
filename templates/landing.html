@@ -1,0 +1,916 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AdminBooker — Facturen automatisch in Rompslomp</title>
+  <meta name="description" content="Jij bouwt. Wij boeken. Stuur een factuur door, binnen seconden staat hij in Rompslomp.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #060a14;
+      --bg2:       #0b1120;
+      --bg3:       #111827;
+      --border:    rgba(255,255,255,.07);
+      --border2:   rgba(255,255,255,.12);
+      --text:      #f1f5f9;
+      --muted:     #64748b;
+      --subtle:    #334155;
+      --blue:      #3b82f6;
+      --blue-soft: rgba(59,130,246,.12);
+      --indigo:    #6366f1;
+      --purple:    #8b5cf6;
+      --green:     #10b981;
+      --r:         12px;
+      --rl:        20px;
+    }
+
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      -webkit-font-smoothing: antialiased;
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+
+    /* ── NOISE TEXTURE ── */
+    body::before {
+      content: '';
+      position: fixed; inset: 0; z-index: 9999;
+      pointer-events: none;
+      opacity: .025;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+      background-size: 200px 200px;
+    }
+
+    /* ── NAV ── */
+    nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      padding: 0 32px;
+      background: transparent;
+      border-bottom: 1px solid transparent;
+      transition: background .4s ease, border-color .4s ease, box-shadow .4s ease;
+    }
+    nav.scrolled {
+      background: rgba(6,10,20,.85);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border-bottom: 1px solid var(--border);
+      box-shadow: 0 1px 0 0 var(--border);
+    }
+    .nav-inner { max-width: 1200px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; height: 64px; }
+    .logo { font-weight: 800; font-size: 1.05rem; color: var(--text); text-decoration: none; letter-spacing: -.03em; display: flex; align-items: center; gap: 8px; }
+    .logo-dot { width: 7px; height: 7px; background: var(--blue); border-radius: 50%; box-shadow: 0 0 10px var(--blue); }
+    .nav-links { display: flex; align-items: center; gap: 32px; }
+    .nav-link { font-size: .85rem; font-weight: 500; color: var(--muted); text-decoration: none; transition: color .2s; letter-spacing: -.01em; }
+    .nav-link:hover { color: var(--text); }
+    .nav-pill {
+      font-size: .82rem; font-weight: 600; color: var(--text);
+      background: rgba(255,255,255,.07); border: 1px solid var(--border2);
+      padding: 7px 16px; border-radius: 8px; text-decoration: none;
+      transition: background .2s, border-color .2s;
+      letter-spacing: -.01em;
+    }
+    .nav-pill:hover { background: rgba(255,255,255,.12); border-color: rgba(255,255,255,.2); }
+
+    /* ── HERO ── */
+    .hero {
+      position: relative; overflow: hidden;
+      min-height: 100vh;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      padding: 140px 32px 80px;
+      text-align: center;
+    }
+    #beam-canvas { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 0; }
+    .hero-vignette {
+      position: absolute; inset: 0; pointer-events: none; z-index: 1;
+      background:
+        radial-gradient(ellipse 80% 50% at 50% 0%, rgba(59,130,246,.08) 0%, transparent 70%),
+        radial-gradient(ellipse 60% 60% at 50% 100%, var(--bg) 0%, transparent 60%);
+    }
+    .hero > *:not(#beam-canvas):not(.hero-vignette) { position: relative; z-index: 2; }
+
+    .hero-eyebrow {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: rgba(59,130,246,.08); border: 1px solid rgba(59,130,246,.2);
+      color: #93c5fd; font-size: .78rem; font-weight: 600; letter-spacing: .06em; text-transform: uppercase;
+      padding: 6px 14px; border-radius: 100px; margin-bottom: 36px;
+    }
+    .hero-eyebrow-dot { width: 5px; height: 5px; background: var(--blue); border-radius: 50%; box-shadow: 0 0 8px var(--blue); animation: pulse 2s ease-in-out infinite; }
+    @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.5;transform:scale(.8)} }
+
+    .hero h1 {
+      font-size: clamp(3rem, 8vw, 7rem);
+      font-weight: 900;
+      letter-spacing: -.05em;
+      line-height: 1.0;
+      margin-bottom: 28px;
+      max-width: 900px;
+    }
+    .hero h1 .line1 { display: block; color: var(--text); }
+    .hero h1 .line2 {
+      display: block;
+      background: linear-gradient(135deg, #60a5fa 0%, #a78bfa 50%, #38bdf8 100%);
+      background-size: 200% auto;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      animation: shimmer 3s linear infinite;
+    }
+    @keyframes shimmer { 0%{background-position:0% center} 100%{background-position:200% center} }
+
+    .hero-sub {
+      font-size: 1.15rem; color: var(--muted); max-width: 480px;
+      margin: 0 auto 44px; line-height: 1.75; font-weight: 400;
+    }
+    .hero-sub strong { color: #94a3b8; font-weight: 500; }
+
+    .hero-actions { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin-bottom: 72px; }
+    .btn-hero {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: var(--blue); color: #fff;
+      font-size: .95rem; font-weight: 600; letter-spacing: -.01em;
+      padding: 13px 26px; border-radius: 10px; text-decoration: none;
+      position: relative; overflow: hidden;
+      transition: transform .2s, box-shadow .2s;
+      box-shadow: 0 0 0 1px rgba(59,130,246,.3), 0 4px 24px -4px rgba(59,130,246,.4);
+    }
+    .btn-hero:hover { transform: translateY(-1px); box-shadow: 0 0 0 1px rgba(59,130,246,.5), 0 8px 32px -4px rgba(59,130,246,.5); }
+    .btn-hero::after { content:''; position:absolute; inset:0; background:linear-gradient(105deg,transparent 40%,rgba(255,255,255,.15) 50%,transparent 60%); transform:translateX(-100%); transition:transform .5s; }
+    .btn-hero:hover::after { transform:translateX(100%); }
+    .btn-ghost-hero {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: rgba(255,255,255,.04); color: var(--muted);
+      font-size: .95rem; font-weight: 500; letter-spacing: -.01em;
+      padding: 13px 26px; border-radius: 10px; text-decoration: none;
+      border: 1px solid var(--border); transition: color .2s, background .2s, border-color .2s;
+    }
+    .btn-ghost-hero:hover { color: var(--text); background: rgba(255,255,255,.07); border-color: var(--border2); }
+
+    /* ── PRODUCT MOCKUP ── */
+    .mockup-wrap {
+      position: relative; max-width: 860px; width: 100%;
+      margin: 0 auto;
+    }
+    .mockup-glow {
+      position: absolute; inset: -40px;
+      background: radial-gradient(ellipse at 50% 50%, rgba(59,130,246,.12) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .mockup {
+      border: 1px solid var(--border2);
+      border-radius: 16px;
+      overflow: hidden;
+      background: var(--bg2);
+      box-shadow: 0 0 0 1px var(--border), 0 32px 80px -16px rgba(0,0,0,.6);
+      position: relative;
+    }
+    .mockup-bar {
+      background: var(--bg3); border-bottom: 1px solid var(--border);
+      padding: 12px 20px; display: flex; align-items: center; gap: 8px;
+    }
+    .mockup-dot { width: 10px; height: 10px; border-radius: 50%; }
+    .mockup-dot.r { background: #ef4444; }
+    .mockup-dot.y { background: #f59e0b; }
+    .mockup-dot.g { background: #10b981; }
+    .mockup-url { flex: 1; text-align: center; }
+    .mockup-url-inner { display: inline-block; background: var(--bg2); border: 1px solid var(--border); border-radius: 6px; padding: 4px 14px; font-size: .75rem; color: var(--muted); font-family: monospace; }
+    .mockup-body { padding: 28px; }
+    .mockup-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; }
+    .mockup-title { font-size: .9rem; font-weight: 700; letter-spacing: -.02em; }
+    .mockup-badge { font-size: .7rem; font-weight: 600; background: rgba(16,185,129,.12); color: #34d399; border: 1px solid rgba(16,185,129,.2); padding: 3px 10px; border-radius: 100px; }
+    .mockup-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 20px; }
+    .mockup-stat { background: var(--bg3); border: 1px solid var(--border); border-radius: 8px; padding: 14px; }
+    .mockup-stat-label { font-size: .67rem; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 4px; }
+    .mockup-stat-val { font-size: 1.3rem; font-weight: 800; letter-spacing: -.03em; }
+    .mockup-stat-val.blue { color: var(--blue); }
+    .mockup-stat-val.green { color: var(--green); }
+    .mockup-invoice-list { display: flex; flex-direction: column; gap: 8px; }
+    .mockup-invoice { background: var(--bg3); border: 1px solid var(--border); border-radius: 8px; padding: 12px 16px; display: flex; align-items: center; gap: 12px; }
+    .mockup-invoice-icon { width: 32px; height: 32px; background: rgba(59,130,246,.1); border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: .85rem; flex-shrink: 0; }
+    .mockup-invoice-info { flex: 1; }
+    .mockup-invoice-name { font-size: .78rem; font-weight: 600; margin-bottom: 2px; }
+    .mockup-invoice-meta { font-size: .68rem; color: var(--muted); }
+    .mockup-invoice-amount { font-size: .82rem; font-weight: 700; }
+    .mockup-invoice-status { font-size: .65rem; font-weight: 600; padding: 2px 8px; border-radius: 100px; }
+    .status-ok { background: rgba(16,185,129,.1); color: #34d399; }
+    .status-check { background: rgba(245,158,11,.1); color: #fbbf24; }
+
+    /* ── TICKER ── */
+    .ticker { border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); padding: 16px 0; overflow: hidden; background: var(--bg2); }
+    .ticker-inner { display: flex; gap: 64px; animation: ticker 20s linear infinite; width: max-content; }
+    .ticker-item { display: flex; align-items: center; gap: 10px; white-space: nowrap; color: var(--muted); font-size: .8rem; font-weight: 500; }
+    .ticker-item strong { color: var(--text); font-weight: 700; }
+    .ticker-sep { color: var(--subtle); }
+    @keyframes ticker { from{transform:translateX(0)} to{transform:translateX(-50%)} }
+
+    /* ── SECTIONS ── */
+    .section { padding: 120px 32px; max-width: 1200px; margin: 0 auto; }
+    .section-center { text-align: center; }
+    .label {
+      display: inline-block; font-size: .72rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
+      color: var(--blue); margin-bottom: 16px;
+    }
+    .display { font-size: clamp(2rem, 4vw, 3rem); font-weight: 800; letter-spacing: -.04em; line-height: 1.15; margin-bottom: 16px; }
+    .lead { color: var(--muted); font-size: 1rem; line-height: 1.75; max-width: 500px; }
+    .section-center .lead { margin: 0 auto; }
+
+    /* ── HOW IT WORKS ── */
+    .how-wrap { display: grid; grid-template-columns: 1fr 1fr; gap: 80px; align-items: center; margin-top: 80px; }
+    .how-steps { display: flex; flex-direction: column; gap: 0; }
+    .how-step { display: flex; gap: 20px; padding: 28px 0; border-bottom: 1px solid var(--border); cursor: pointer; transition: all .2s; }
+    .how-step:first-child { padding-top: 0; }
+    .how-step:last-child { border-bottom: none; }
+    .how-step.active .how-step-num { background: var(--blue); color: #fff; border-color: var(--blue); }
+    .how-step.active .how-step-title { color: var(--text); }
+    .how-step-num {
+      width: 36px; height: 36px; border-radius: 50%; border: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: center;
+      font-size: .78rem; font-weight: 700; color: var(--muted); flex-shrink: 0;
+      transition: all .3s;
+    }
+    .how-step-title { font-size: 1rem; font-weight: 700; letter-spacing: -.02em; color: var(--muted); margin-bottom: 6px; transition: color .2s; }
+    .how-step.active .how-step-text { max-height: 80px; opacity: 1; }
+    .how-step-text { font-size: .875rem; color: var(--muted); line-height: 1.65; max-height: 0; overflow: hidden; opacity: 0; transition: max-height .4s ease, opacity .3s; }
+    .how-visual { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--rl); padding: 40px; aspect-ratio: 4/3; display: flex; align-items: center; justify-content: center; }
+    .how-visual-icon { font-size: 4rem; }
+
+    /* ── FEATURES ── */
+    .features-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: var(--border); border: 1px solid var(--border); border-radius: var(--rl); overflow: hidden; margin-top: 60px; }
+    .feat {
+      background: var(--bg);
+      padding: 36px;
+      transition: background .25s;
+      position: relative;
+    }
+    .feat::before {
+      content: ''; position: absolute; inset: 0;
+      background: radial-gradient(circle at 0% 0%, rgba(59,130,246,.06) 0%, transparent 60%);
+      opacity: 0; transition: opacity .3s;
+    }
+    .feat:hover { background: var(--bg2); }
+    .feat:hover::before { opacity: 1; }
+    .feat-icon { font-size: 1.4rem; margin-bottom: 16px; display: block; }
+    .feat h3 { font-size: .95rem; font-weight: 700; letter-spacing: -.02em; margin-bottom: 8px; }
+    .feat p { font-size: .82rem; color: var(--muted); line-height: 1.65; }
+
+    /* ── TESTIMONIALS ── */
+    .testimonials { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-top: 60px; }
+    .testi {
+      background: var(--bg2); border: 1px solid var(--border);
+      border-radius: var(--r); padding: 28px;
+      transition: border-color .2s, transform .2s;
+    }
+    .testi:hover { border-color: var(--border2); transform: translateY(-2px); }
+    .testi-stars { color: #fbbf24; font-size: .85rem; margin-bottom: 14px; letter-spacing: 2px; }
+    .testi-text { font-size: .875rem; color: #94a3b8; line-height: 1.7; margin-bottom: 20px; font-style: italic; }
+    .testi-author { display: flex; align-items: center; gap: 12px; }
+    .testi-avatar { width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg, var(--blue), var(--purple)); display: flex; align-items: center; justify-content: center; font-size: .8rem; font-weight: 700; color: #fff; flex-shrink: 0; }
+    .testi-name { font-size: .82rem; font-weight: 700; letter-spacing: -.01em; }
+    .testi-role { font-size: .72rem; color: var(--muted); }
+
+    /* ── STATS ── */
+    .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: var(--border); border: 1px solid var(--border); border-radius: var(--rl); overflow: hidden; margin-top: 60px; }
+    .stat-box { background: var(--bg); padding: 48px 36px; text-align: center; }
+    .stat-num { font-size: 3rem; font-weight: 900; letter-spacing: -.05em; background: linear-gradient(135deg, var(--text), var(--muted)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; display: block; }
+    .stat-label { font-size: .8rem; color: var(--muted); margin-top: 4px; }
+
+    /* ── PRICING ── */
+    .pricing-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 780px; margin: 60px auto 0; }
+    .pricing-card {
+      background: var(--bg2); border: 1px solid var(--border);
+      border-radius: var(--rl); padding: 40px; position: relative; overflow: hidden;
+    }
+    .pricing-card.featured { border-color: rgba(59,130,246,.4); background: rgba(59,130,246,.04); }
+    .pricing-card.featured::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px;
+      background: linear-gradient(90deg, transparent, var(--blue), transparent);
+    }
+    .pricing-top { margin-bottom: 32px; }
+    .pricing-name { font-size: .8rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin-bottom: 12px; }
+    .pricing-price { font-size: 3.5rem; font-weight: 900; letter-spacing: -.05em; line-height: 1; }
+    .pricing-price sup { font-size: 1.2rem; font-weight: 600; vertical-align: top; margin-top: 10px; display: inline-block; }
+    .pricing-price span { font-size: .95rem; font-weight: 400; color: var(--muted); }
+    .pricing-tagline { font-size: .82rem; color: var(--muted); margin-top: 8px; line-height: 1.5; }
+    .pricing-divider { height: 1px; background: var(--border); margin: 24px 0; }
+    .pricing-features { list-style: none; display: flex; flex-direction: column; gap: 12px; margin-bottom: 32px; }
+    .pricing-features li { font-size: .85rem; color: #94a3b8; display: flex; gap: 10px; align-items: flex-start; }
+    .pricing-features li::before { content: '✓'; color: var(--green); font-weight: 800; flex-shrink: 0; }
+    .btn-pricing-outline {
+      display: block; text-align: center; padding: 12px; border-radius: 8px;
+      border: 1px solid var(--border2); color: var(--text); text-decoration: none;
+      font-size: .875rem; font-weight: 600; letter-spacing: -.01em;
+      transition: background .2s, border-color .2s;
+    }
+    .btn-pricing-outline:hover { background: rgba(255,255,255,.05); border-color: rgba(255,255,255,.2); }
+    .btn-pricing-primary {
+      display: block; text-align: center; padding: 12px; border-radius: 8px;
+      background: var(--blue); color: #fff; text-decoration: none;
+      font-size: .875rem; font-weight: 600; letter-spacing: -.01em;
+      transition: background .2s, box-shadow .2s;
+      box-shadow: 0 4px 20px -4px rgba(59,130,246,.4);
+    }
+    .btn-pricing-primary:hover { background: #2563eb; box-shadow: 0 4px 24px -4px rgba(59,130,246,.6); }
+    .pricing-badge {
+      position: absolute; top: 20px; right: 20px;
+      font-size: .68rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase;
+      background: rgba(59,130,246,.15); color: #93c5fd; border: 1px solid rgba(59,130,246,.3);
+      padding: 4px 10px; border-radius: 100px;
+    }
+
+    /* ── FAQ ── */
+    .faq-list { display: flex; flex-direction: column; border: 1px solid var(--border); border-radius: var(--rl); overflow: hidden; margin-top: 60px; max-width: 720px; margin-left: auto; margin-right: auto; }
+    .faq-item { border-bottom: 1px solid var(--border); }
+    .faq-item:last-child { border-bottom: none; }
+    .faq-q {
+      width: 100%; background: none; border: none; color: var(--text);
+      padding: 24px 28px; text-align: left; font-family: inherit;
+      font-size: .95rem; font-weight: 600; letter-spacing: -.02em;
+      cursor: pointer; display: flex; justify-content: space-between; align-items: center; gap: 16px;
+      transition: background .2s;
+    }
+    .faq-q:hover { background: var(--bg2); }
+    .faq-icon { font-size: 1.2rem; color: var(--muted); transition: transform .3s; flex-shrink: 0; }
+    .faq-item.open .faq-icon { transform: rotate(45deg); color: var(--text); }
+    .faq-a { max-height: 0; overflow: hidden; transition: max-height .4s ease; }
+    .faq-item.open .faq-a { max-height: 200px; }
+    .faq-a-inner { padding: 0 28px 24px; font-size: .875rem; color: var(--muted); line-height: 1.75; }
+
+    /* ── CTA SECTION ── */
+    .cta-section {
+      margin: 0 32px 120px;
+      border-radius: var(--rl);
+      border: 1px solid var(--border);
+      background: var(--bg2);
+      padding: 80px 40px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .cta-section::before {
+      content: ''; position: absolute; top: -80px; left: 50%; transform: translateX(-50%);
+      width: 500px; height: 300px;
+      background: radial-gradient(ellipse, rgba(59,130,246,.12) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .cta-section::after {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(59,130,246,.4), transparent);
+    }
+    .cta-section .display { position: relative; }
+    .cta-section .lead { position: relative; }
+    .cta-form { max-width: 440px; margin: 40px auto 0; position: relative; }
+    .cta-form-row { display: flex; gap: 10px; margin-bottom: 12px; }
+    .cta-input {
+      flex: 1; background: var(--bg3); border: 1px solid var(--border2); border-radius: 8px;
+      color: var(--text); font-family: inherit; font-size: .875rem;
+      padding: 12px 16px; outline: none;
+      transition: border-color .2s, box-shadow .2s;
+    }
+    .cta-input::placeholder { color: var(--muted); }
+    .cta-input:focus { border-color: rgba(59,130,246,.5); box-shadow: 0 0 0 3px rgba(59,130,246,.1); }
+    .cta-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+    .cta-btn {
+      width: 100%; background: var(--blue); color: #fff; border: none;
+      font-family: inherit; font-size: .9rem; font-weight: 700; letter-spacing: -.01em;
+      padding: 13px; border-radius: 8px; cursor: pointer;
+      transition: background .2s, box-shadow .2s;
+      box-shadow: 0 4px 20px -4px rgba(59,130,246,.4);
+      position: relative; overflow: hidden;
+    }
+    .cta-btn:hover { background: #2563eb; box-shadow: 0 4px 28px -4px rgba(59,130,246,.6); }
+    .cta-btn::after { content:''; position:absolute; inset:0; background:linear-gradient(105deg,transparent 40%,rgba(255,255,255,.15) 50%,transparent 60%); transform:translateX(-100%); transition:transform .5s; }
+    .cta-btn:hover::after { transform:translateX(100%); }
+    .cta-note { font-size: .75rem; color: var(--muted); margin-top: 12px; }
+
+    /* ── FOOTER ── */
+    footer { border-top: 1px solid var(--border); padding: 40px 32px; }
+    .footer-inner { max-width: 1200px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; }
+    .footer-copy { font-size: .78rem; color: var(--muted); }
+    .footer-links { display: flex; gap: 24px; }
+    .footer-link { font-size: .78rem; color: var(--muted); text-decoration: none; transition: color .2s; }
+    .footer-link:hover { color: var(--text); }
+
+    /* ── ANIMATIONS ── */
+    .reveal { opacity: 0; transform: translateY(20px); transition: opacity .7s cubic-bezier(.16,1,.3,1), transform .7s cubic-bezier(.16,1,.3,1); }
+    .reveal.visible { opacity: 1; transform: none; }
+    .reveal-d1 { transition-delay: .1s; }
+    .reveal-d2 { transition-delay: .2s; }
+    .reveal-d3 { transition-delay: .3s; }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 900px) {
+      .how-wrap { grid-template-columns: 1fr; }
+      .how-visual { display: none; }
+      .features-grid { grid-template-columns: 1fr 1fr; }
+      .testimonials { grid-template-columns: 1fr; }
+      .stats-grid { grid-template-columns: 1fr 1fr; }
+      .pricing-grid { grid-template-columns: 1fr; max-width: 480px; }
+      .footer-inner { flex-direction: column; gap: 16px; text-align: center; }
+    }
+    @media (max-width: 600px) {
+      .features-grid { grid-template-columns: 1fr; }
+      .stats-grid { grid-template-columns: 1fr 1fr; }
+      .nav-links .nav-link { display: none; }
+      .cta-fields { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav id="navbar">
+  <div class="nav-inner">
+    <a href="#" class="logo">
+      <span class="logo-dot"></span>
+      AdminBooker
+    </a>
+    <div class="nav-links">
+      <a href="#hoe" class="nav-link">Hoe het werkt</a>
+      <a href="#prijzen" class="nav-link">Prijzen</a>
+      <a href="#faq" class="nav-link">FAQ</a>
+      <a href="#demo" class="nav-pill">Laat het me zien →</a>
+    </div>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <canvas id="beam-canvas"></canvas>
+  <div class="hero-vignette"></div>
+
+  <div class="hero-eyebrow">
+    <span class="hero-eyebrow-dot"></span>
+    Koppelt direct met Rompslomp
+  </div>
+
+  <h1>
+    <span class="line1">Jij bouwt.</span>
+    <span class="line2">Wij boeken.</span>
+  </h1>
+
+  <p class="hero-sub">
+    Factuur ontvangen? <strong>Doorsturen.</strong><br>
+    Binnen seconden staat hij in Rompslomp — compleet met BTW, grootboekrekening en PDF-bijlage.
+  </p>
+
+  <div class="hero-actions">
+    <a href="#demo" class="btn-hero">Probeer het gratis →</a>
+    <a href="#hoe" class="btn-ghost-hero">Hoe werkt het?</a>
+  </div>
+
+  <!-- Product Mockup -->
+  <div class="mockup-wrap">
+    <div class="mockup-glow"></div>
+    <div class="mockup">
+      <div class="mockup-bar">
+        <span class="mockup-dot r"></span>
+        <span class="mockup-dot y"></span>
+        <span class="mockup-dot g"></span>
+        <div class="mockup-url"><span class="mockup-url-inner">adminbooker.nl/inbox</span></div>
+      </div>
+      <div class="mockup-body">
+        <div class="mockup-header">
+          <span class="mockup-title">Postvak — Te controleren</span>
+          <span class="mockup-badge">● Verbonden met Rompslomp</span>
+        </div>
+        <div class="mockup-row">
+          <div class="mockup-stat"><div class="mockup-stat-label">Vandaag ingeboekt</div><div class="mockup-stat-val blue">12</div></div>
+          <div class="mockup-stat"><div class="mockup-stat-label">Totaal verwerkt</div><div class="mockup-stat-val">€ 48.320</div></div>
+          <div class="mockup-stat"><div class="mockup-stat-label">Nauwkeurigheid</div><div class="mockup-stat-val green">98.4%</div></div>
+        </div>
+        <div class="mockup-invoice-list">
+          <div class="mockup-invoice">
+            <div class="mockup-invoice-icon">📄</div>
+            <div class="mockup-invoice-info">
+              <div class="mockup-invoice-name">Bouwmaterialen Janssen BV</div>
+              <div class="mockup-invoice-meta">Factuur #2026-0441 · Materialen bouw</div>
+            </div>
+            <div style="text-align:right">
+              <div class="mockup-invoice-amount">€ 3.847,50</div>
+              <div class="mockup-invoice-status status-ok">Akkoord</div>
+            </div>
+          </div>
+          <div class="mockup-invoice">
+            <div class="mockup-invoice-icon">📄</div>
+            <div class="mockup-invoice-info">
+              <div class="mockup-invoice-name">Steigerbouw De Groot</div>
+              <div class="mockup-invoice-meta">Factuur #SB-1182 · Onderaanneming</div>
+            </div>
+            <div style="text-align:right">
+              <div class="mockup-invoice-amount">€ 12.500,00</div>
+              <div class="mockup-invoice-status status-check">Controleer</div>
+            </div>
+          </div>
+          <div class="mockup-invoice">
+            <div class="mockup-invoice-icon">📄</div>
+            <div class="mockup-invoice-info">
+              <div class="mockup-invoice-name">Verfhandel Noord BV</div>
+              <div class="mockup-invoice-meta">Factuur #VHN-0089 · Materialen</div>
+            </div>
+            <div style="text-align:right">
+              <div class="mockup-invoice-amount">€ 892,40</div>
+              <div class="mockup-invoice-status status-ok">Akkoord</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- TICKER -->
+<div class="ticker">
+  <div class="ticker-inner" id="ticker">
+    <span class="ticker-item"><strong>98.4%</strong> nauwkeurigheid</span>
+    <span class="ticker-sep">·</span>
+    <span class="ticker-item"><strong>€ 2,4M+</strong> verwerkt</span>
+    <span class="ticker-sep">·</span>
+    <span class="ticker-item"><strong>3 min</strong> bespaard per factuur</span>
+    <span class="ticker-sep">·</span>
+    <span class="ticker-item">Werkt met <strong>Rompslomp</strong></span>
+    <span class="ticker-sep">·</span>
+    <span class="ticker-item">Geen <strong>installatie</strong> nodig</span>
+    <span class="ticker-sep">·</span>
+    <span class="ticker-item"><strong>Altijd</strong> PDF als bijlage</span>
+    <span class="ticker-sep">·</span>
+    <span class="ticker-item"><strong>98.4%</strong> nauwkeurigheid</span>
+    <span class="ticker-sep">·</span>
+    <span class="ticker-item"><strong>€ 2,4M+</strong> verwerkt</span>
+    <span class="ticker-sep">·</span>
+    <span class="ticker-item"><strong>3 min</strong> bespaard per factuur</span>
+    <span class="ticker-sep">·</span>
+    <span class="ticker-item">Werkt met <strong>Rompslomp</strong></span>
+    <span class="ticker-sep">·</span>
+    <span class="ticker-item">Geen <strong>installatie</strong> nodig</span>
+    <span class="ticker-sep">·</span>
+    <span class="ticker-item"><strong>Altijd</strong> PDF als bijlage</span>
+    <span class="ticker-sep">·</span>
+  </div>
+</div>
+
+<!-- HOW IT WORKS -->
+<section class="section" id="hoe">
+  <div class="label">Zo werkt het</div>
+  <h2 class="display">Één handeling.<br>De rest doen wij.</h2>
+  <p class="lead">Geen nieuw systeem leren. Geen software installeren. Gewoon een emailadres erbij.</p>
+
+  <div class="how-wrap">
+    <div class="how-steps">
+      <div class="how-step active" data-step="0">
+        <div class="how-step-num">1</div>
+        <div>
+          <div class="how-step-title">Factuur ontvangen? Doorsturen.</div>
+          <div class="how-step-text">Stuur de PDF door naar jouw AdminBooker-adres. Dat is écht alles. Werkt vanuit Gmail, Outlook, of waar je ook je mail leest.</div>
+        </div>
+      </div>
+      <div class="how-step" data-step="1">
+        <div class="how-step-num">2</div>
+        <div>
+          <div class="how-step-title">Herkend in seconden</div>
+          <div class="how-step-text">AdminBooker leest de factuur en herkent de leverancier, het bedrag, de BTW en de juiste grootboekrekening. Geen handmatige invoer.</div>
+        </div>
+      </div>
+      <div class="how-step" data-step="2">
+        <div class="how-step-num">3</div>
+        <div>
+          <div class="how-step-title">In Rompslomp. Klaar.</div>
+          <div class="how-step-text">De factuur staat er in, compleet met PDF-bijlage. Klaar voor je boekhouder, zonder dat jij er iets voor deed.</div>
+        </div>
+      </div>
+    </div>
+    <div class="how-visual">
+      <div style="text-align:center">
+        <div style="font-size:3.5rem;margin-bottom:16px" id="how-icon">📧</div>
+        <div style="font-size:.85rem;color:var(--muted);max-width:200px" id="how-text">Stuur de factuur door vanuit je gewone emailprogramma</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section style="padding: 0 32px 120px">
+  <div style="max-width:1200px;margin:0 auto">
+    <div class="label reveal">Functies</div>
+    <h2 class="display reveal">Minder rompslomp.<br>Meer bouwen.</h2>
+    <div class="features-grid">
+      <div class="feat reveal reveal-d1">
+        <span class="feat-icon">📬</span>
+        <h3>Gewoon forwarden</h3>
+        <p>Gmail, Outlook, of wat je ook gebruikt — factuur doorsturen naar één adres en je bent klaar.</p>
+      </div>
+      <div class="feat reveal reveal-d2">
+        <span class="feat-icon">🏗️</span>
+        <h3>Rechtstreeks in Rompslomp</h3>
+        <p>Inkoop én verkoop. Geen tussenstation, geen export, geen copy-paste. Gewoon erin.</p>
+      </div>
+      <div class="feat reveal reveal-d3">
+        <span class="feat-icon">🧠</span>
+        <h3>Wordt slimmer per factuur</h3>
+        <p>Corrigeer je een rekening? Onthouden. Volgende keer van dezelfde leverancier gaat het meteen goed.</p>
+      </div>
+      <div class="feat reveal reveal-d1">
+        <span class="feat-icon">🔍</span>
+        <h3>Twijfelgevallen op één plek</h3>
+        <p>Niet zeker? Komt in jouw overzicht. Één klik om goed te keuren. Geen verrassingen.</p>
+      </div>
+      <div class="feat reveal reveal-d2">
+        <span class="feat-icon">🔒</span>
+        <h3>Nooit twee keer ingeboekt</h3>
+        <p>Zelfde factuur twee keer doorgestuurd? Herkent hij. Slaat hij over. Geen dubbel werk.</p>
+      </div>
+      <div class="feat reveal reveal-d3">
+        <span class="feat-icon">📎</span>
+        <h3>PDF er altijd bij</h3>
+        <p>De originele factuur zit als bijlage in Rompslomp. Handig als de Belastingdienst langskomt.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- STATS -->
+<section style="padding: 0 32px 120px">
+  <div style="max-width:1200px;margin:0 auto">
+    <div class="stats-grid">
+      <div class="stat-box reveal"><span class="stat-num" data-target="98" data-suffix="%">0</span><span class="stat-label">nauwkeurigheid gemiddeld</span></div>
+      <div class="stat-box reveal reveal-d1"><span class="stat-num" data-target="3" data-suffix=" min">0</span><span class="stat-label">bespaard per factuur</span></div>
+      <div class="stat-box reveal reveal-d2"><span class="stat-num" data-target="2.4" data-prefix="€ " data-suffix="M+" data-float="true">0</span><span class="stat-label">aan facturen verwerkt</span></div>
+      <div class="stat-box reveal reveal-d3"><span class="stat-num">24/7</span><span class="stat-label">beschikbaar, ook 's nachts</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- TESTIMONIALS -->
+<section style="padding: 0 32px 120px">
+  <div style="max-width:1200px;margin:0 auto">
+    <div class="label reveal">Wat klanten zeggen</div>
+    <h2 class="display reveal">Van 2 uur per week<br>naar 10 minuten.</h2>
+    <div class="testimonials">
+      <div class="testi reveal reveal-d1">
+        <div class="testi-stars">★★★★★</div>
+        <p class="testi-text">"We kregen elke week 30-40 facturen van onderaannemers. Dat was een dagtaak. Nu sturen we ze door en zijn ze 's avonds verwerkt. Echt een wereld van verschil."</p>
+        <div class="testi-author">
+          <div class="testi-avatar">MV</div>
+          <div><div class="testi-name">Mark van der Berg</div><div class="testi-role">Eigenaar · Bouwbedrijf Van der Berg</div></div>
+        </div>
+      </div>
+      <div class="testi reveal reveal-d2">
+        <div class="testi-stars">★★★★★</div>
+        <p class="testi-text">"Onze boekhouder was sceptisch, maar nu gebruikt hij het zelf ook om te controleren. De PDF zit er altijd bij, dat scheelt hem uren opzoeken."</p>
+        <div class="testi-author">
+          <div class="testi-avatar" style="background:linear-gradient(135deg,#10b981,#3b82f6)">JK</div>
+          <div><div class="testi-name">Jeroen Kok</div><div class="testi-role">Directeur · JK Aannemersbedrijf</div></div>
+        </div>
+      </div>
+      <div class="testi reveal reveal-d3">
+        <div class="testi-stars">★★★★★</div>
+        <p class="testi-text">"Ik dacht dat het te ingewikkeld zou zijn voor ons. Maar het was letterlijk: accountje aanmaken, forwarden, klaar. Eerste factuur stond er in 30 seconden."</p>
+        <div class="testi-author">
+          <div class="testi-avatar" style="background:linear-gradient(135deg,#f59e0b,#ef4444)">RH</div>
+          <div><div class="testi-name">Roel Hendriks</div><div class="testi-role">Eigenaar · Hendriks Renovatie</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PRICING -->
+<section class="section section-center" id="prijzen">
+  <div class="label">Kosten</div>
+  <h2 class="display">Minder dan één uur<br>adminwerk per maand.</h2>
+  <p class="lead">Geen jaarcontract. Geen setupkosten. Opzeggen wanneer je wil.</p>
+  <div class="pricing-grid">
+    <div class="pricing-card reveal">
+      <div class="pricing-top">
+        <div class="pricing-name">Starter</div>
+        <div class="pricing-price"><sup>€</sup>79<span>/maand</span></div>
+        <div class="pricing-tagline">Je boekt minder dan 50 facturen per maand en wil gewoon dat het werkt.</div>
+      </div>
+      <div class="pricing-divider"></div>
+      <ul class="pricing-features">
+        <li>Tot 50 facturen/maand</li>
+        <li>Email forwarding</li>
+        <li>Rompslomp-koppeling</li>
+        <li>Overzicht twijfelgevallen</li>
+        <li>Support via email</li>
+      </ul>
+      <a href="#demo" class="btn-pricing-outline">Laat het me zien</a>
+    </div>
+    <div class="pricing-card featured reveal reveal-d1">
+      <div class="pricing-badge">Meest gekozen</div>
+      <div class="pricing-top">
+        <div class="pricing-name">Pro</div>
+        <div class="pricing-price"><sup>€</sup>129<span>/maand</span></div>
+        <div class="pricing-tagline">Veel leveranciers en ook verkoopfacturen automatisch verwerken.</div>
+      </div>
+      <div class="pricing-divider"></div>
+      <ul class="pricing-features">
+        <li>Onbeperkt facturen</li>
+        <li>Email forwarding</li>
+        <li>Inkoop én verkoop</li>
+        <li>Rompslomp-koppeling</li>
+        <li>Overzicht twijfelgevallen</li>
+        <li>Directe support</li>
+      </ul>
+      <a href="#demo" class="btn-pricing-primary">Laat het me zien</a>
+    </div>
+  </div>
+</section>
+
+<!-- FAQ -->
+<section style="padding: 0 32px 120px" id="faq">
+  <div style="max-width:1200px;margin:0 auto;text-align:center">
+    <div class="label">FAQ</div>
+    <h2 class="display">Veelgestelde vragen</h2>
+    <div class="faq-list">
+      <div class="faq-item">
+        <button class="faq-q">Werkt het echt alleen met forwarden?<span class="faq-icon">+</span></button>
+        <div class="faq-a"><div class="faq-a-inner">Ja. Je stuurt de factuur (als PDF-bijlage) door naar jouw AdminBooker-adres. De rest gaat automatisch. Je hoeft niets in te loggen, niets te uploaden, niets te klikken.</div></div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q">Wat als AdminBooker een fout maakt?<span class="faq-icon">+</span></button>
+        <div class="faq-a"><div class="faq-a-inner">Twijfelgevallen komen in het overzicht 'Te controleren'. Daar zie je precies wat er geboekt is en kun je het corrigeren. AdminBooker leert van die correctie en doet het de volgende keer goed.</div></div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q">Moet ik iets installeren?<span class="faq-icon">+</span></button>
+        <div class="faq-a"><div class="faq-a-inner">Nee. AdminBooker draait in de cloud. Je koppelt eenmalig je Rompslomp-account en je bent klaar. Geen software, geen IT-afdeling nodig.</div></div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q">Wat kost het als ik meer dan 50 facturen heb?<span class="faq-icon">+</span></button>
+        <div class="faq-a"><div class="faq-a-inner">Dan pak je het Pro-abonnement voor €129/maand. Dat is onbeperkt facturen, inkoop én verkoop, en directe support als er iets niet klopt.</div></div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q">Kan ik stoppen wanneer ik wil?<span class="faq-icon">+</span></button>
+        <div class="faq-a"><div class="faq-a-inner">Ja. Geen jaarcontract, geen opzegtermijn. Maand-tot-maand. Als je stopt, heb je nog gewoon toegang tot het einde van de betaalde periode.</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="cta-section" id="demo">
+  <div class="label">Gratis proberen</div>
+  <h2 class="display">Stuur ons één factuur.<br>Wij laten zien wat er gebeurt.</h2>
+  <p class="lead">Geen verkooppraatje. Gewoon jouw eigen factuur door de app, zodat je ziet of het werkt.</p>
+  <div class="cta-form">
+    <form action="https://formspree.io/f/VERVANG_DIT" method="POST">
+      <div class="cta-fields">
+        <input class="cta-input" type="text" name="naam" placeholder="Naam" required>
+        <input class="cta-input" type="text" name="bedrijf" placeholder="Bedrijfsnaam" required>
+      </div>
+      <div class="cta-form-row">
+        <input class="cta-input" type="email" name="email" placeholder="Emailadres" required>
+      </div>
+      <div class="cta-form-row">
+        <input class="cta-input" type="tel" name="telefoon" placeholder="Telefoonnummer (optioneel)">
+      </div>
+      <button type="submit" class="cta-btn">Stuur me de demo →</button>
+    </form>
+    <p class="cta-note">We bellen je binnen één werkdag. Geen spam, geen verkoopdruk.</p>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-inner">
+    <div class="footer-copy">© 2026 AdminBooker</div>
+    <div class="footer-links">
+      <a href="mailto:info@adminbooker.nl" class="footer-link">info@adminbooker.nl</a>
+      <a href="#" class="footer-link">Privacy</a>
+      <a href="#" class="footer-link">Voorwaarden</a>
+    </div>
+  </div>
+</footer>
+
+<script>
+// ── Beam canvas ──
+(function() {
+  const canvas = document.getElementById('beam-canvas');
+  const ctx = canvas.getContext('2d');
+  function resize() { canvas.width = canvas.offsetWidth; canvas.height = canvas.offsetHeight; }
+  resize();
+  window.addEventListener('resize', resize);
+  const beams = [
+    { x:.1,  y:0,   angle:70,  color:'#3b82f6', w:1.5, speed:.35, len:.6,  op:.6 },
+    { x:.35, y:0,   angle:85,  color:'#6366f1', w:1,   speed:.2,  len:.75, op:.4 },
+    { x:.6,  y:0,   angle:95,  color:'#8b5cf6', w:2,   speed:.3,  len:.65, op:.55 },
+    { x:.82, y:0,   angle:108, color:'#06b6d4', w:1,   speed:.45, len:.55, op:.35 },
+    { x:0,   y:.35, angle:35,  color:'#2563eb', w:1,   speed:.25, len:.6,  op:.3 },
+    { x:1,   y:.45, angle:145, color:'#7c3aed', w:.8,  speed:.4,  len:.5,  op:.3 },
+  ].map(b => ({ ...b, p: Math.random() }));
+
+  function draw(b) {
+    const w = canvas.width, h = canvas.height;
+    const rad = b.angle * Math.PI / 180;
+    const len = Math.max(w,h) * b.len;
+    const cx = b.x * w + Math.cos(rad) * len * b.p;
+    const cy = b.y * h + Math.sin(rad) * len * b.p;
+    const tail = len * .28;
+    const tx = cx - Math.cos(rad) * tail, ty = cy - Math.sin(rad) * tail;
+    const g = ctx.createLinearGradient(tx, ty, cx, cy);
+    const hex = c => Math.round(c * 255).toString(16).padStart(2,'0');
+    g.addColorStop(0, 'transparent');
+    g.addColorStop(.5, b.color + hex(b.op * .4));
+    g.addColorStop(.85, b.color + hex(b.op));
+    g.addColorStop(1, 'transparent');
+    ctx.save();
+    ctx.strokeStyle = g; ctx.lineWidth = b.w;
+    ctx.shadowColor = b.color; ctx.shadowBlur = 16;
+    ctx.globalCompositeOperation = 'screen';
+    ctx.beginPath(); ctx.moveTo(tx, ty); ctx.lineTo(cx, cy); ctx.stroke();
+    const gr = ctx.createRadialGradient(cx, cy, 0, cx, cy, b.w * 8);
+    gr.addColorStop(0, b.color + 'bb'); gr.addColorStop(1, 'transparent');
+    ctx.fillStyle = gr; ctx.beginPath(); ctx.arc(cx, cy, b.w * 8, 0, Math.PI*2); ctx.fill();
+    ctx.restore();
+  }
+  let last = 0;
+  function animate(ts) {
+    const dt = Math.min((ts - last) / 1000, .05); last = ts;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    beams.forEach(b => { draw(b); b.p += b.speed * dt; if (b.p > 1.2) b.p = -.1; });
+    requestAnimationFrame(animate);
+  }
+  requestAnimationFrame(ts => { last = ts; animate(ts); });
+})();
+
+// ── Nav scroll ──
+const navbar = document.getElementById('navbar');
+const updateNav = () => { window.scrollY > 40 ? navbar.classList.add('scrolled') : navbar.classList.remove('scrolled'); };
+window.addEventListener('scroll', updateNav, {passive:true});
+updateNav();
+
+// ── Scroll reveal ──
+const observer = new IntersectionObserver(entries => {
+  entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); observer.unobserve(e.target); } });
+}, { threshold: .1 });
+document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+// ── How it works tabs ──
+const howSteps = document.querySelectorAll('.how-step');
+const icons = ['📧','⚡','✅'];
+const texts = [
+  'Stuur de factuur door vanuit je gewone emailprogramma',
+  'AdminBooker leest en begrijpt de factuur in seconden',
+  'Direct in Rompslomp, compleet met PDF-bijlage'
+];
+howSteps.forEach((step, i) => {
+  step.addEventListener('click', () => {
+    howSteps.forEach(s => s.classList.remove('active'));
+    step.classList.add('active');
+    document.getElementById('how-icon').textContent = icons[i];
+    document.getElementById('how-text').textContent = texts[i];
+  });
+});
+// Auto-cycle
+let currentStep = 0;
+setInterval(() => {
+  currentStep = (currentStep + 1) % howSteps.length;
+  howSteps[currentStep].click();
+}, 3000);
+
+// ── Counting stats ──
+const countObserver = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if (!e.isIntersecting) return;
+    const el = e.target;
+    const raw = el.dataset.target;
+    if (raw === undefined) return;
+    const isFloat = el.dataset.float === 'true';
+    const target = parseFloat(raw);
+    if (isNaN(target)) return;
+    const prefix = el.dataset.prefix || '';
+    const suffix = el.dataset.suffix || '';
+    let start = 0, duration = 1800;
+    const step = ts => {
+      if (!start) start = ts;
+      const p = Math.min((ts - start) / duration, 1);
+      const ease = 1 - Math.pow(1 - p, 3);
+      const val = ease * target;
+      el.textContent = prefix + (isFloat ? val.toFixed(1) : Math.floor(val)) + suffix;
+      if (p < 1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+    countObserver.unobserve(el);
+  });
+}, { threshold: .5 });
+document.querySelectorAll('.stat-num[data-target]').forEach(el => countObserver.observe(el));
+
+// ── FAQ accordion ──
+document.querySelectorAll('.faq-q').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const item = btn.parentElement;
+    const isOpen = item.classList.contains('open');
+    document.querySelectorAll('.faq-item').forEach(i => i.classList.remove('open'));
+    if (!isOpen) item.classList.add('open');
+  });
+});
+</script>
+
+</body>
+</html>

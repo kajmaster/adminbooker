@@ -64,7 +64,10 @@ _AUTH_HASH = os.environ.get("PASSWORD_HASH") or ""
 _AUTH_PLAIN = os.environ.get("PASSWORD") or ""  # alleen voor lokaal testen
 
 # Pad-prefixen die altijd zonder login bereikbaar zijn.
-_PUBLIC_PREFIXES = ("/login", "/static/", "/favicon.ico")
+_PUBLIC_PREFIXES = (
+    "/login", "/logout", "/landing", "/static/", "/favicon.ico",
+    "/webhook", "/api/health",
+)
 
 
 def _auth_configured() -> bool:
@@ -162,6 +165,11 @@ def _moneybird_url(admin_id: str, doc_id: str) -> str:
 @app.route("/")
 def index():
     return render_template("index.html", auth_on=_auth_configured())
+
+
+@app.route("/landing")
+def landing():
+    return render_template("landing.html")
 
 
 @app.route("/api/health")

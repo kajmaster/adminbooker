@@ -1,58 +1,136 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="nl">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>AdminBooker — inloggen</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-  :root{ --ink:#1d2433; --muted:#6b7280; --line:#e5e7eb; --accent:#2563eb;
-         --bad:#b91c1c; --bad-bg:#fee2e2; }
-  *{box-sizing:border-box}
-  body{margin:0;min-height:100vh;background:#f5f6f8;color:var(--ink);
-       font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
-       display:grid;place-items:center;padding:24px}
-  .card{background:#fff;border:1px solid var(--line);border-radius:12px;
-        box-shadow:0 1px 3px rgba(16,24,40,.08),0 1px 2px rgba(16,24,40,.06);
-        width:100%;max-width:380px;padding:28px 26px}
-  .brand{display:flex;align-items:center;gap:10px;margin-bottom:18px}
-  .brand .logo{width:34px;height:34px;border-radius:8px;background:var(--accent);
-               display:grid;place-items:center;color:#fff;font-weight:700}
-  .brand h1{margin:0;font-size:18px}
-  .brand .tag{margin:0;font-size:12px;color:var(--muted)}
-  label{display:block;font-size:13px;font-weight:600;margin:12px 0 4px}
-  input{width:100%;border:1px solid var(--line);border-radius:8px;padding:9px 11px;
-        font:inherit;background:#fafbfc}
-  input:focus{outline:none;border-color:var(--accent);background:#fff}
-  .btn{margin-top:16px;width:100%;background:var(--accent);color:#fff;border:0;
-       padding:10px 14px;border-radius:8px;font-weight:600;cursor:pointer;font-size:14px}
-  .btn:hover{filter:brightness(.95)}
-  .err{margin-top:12px;background:var(--bad-bg);color:var(--bad);padding:8px 11px;
-       border-radius:8px;font-size:13px}
-  .foot{margin-top:14px;font-size:12px;color:var(--muted);text-align:center}
-  .remember{display:flex;align-items:center;gap:8px;margin-top:14px;
-            font-size:13px;color:var(--ink);cursor:pointer;user-select:none}
-  .remember input{width:auto;margin:0;accent-color:var(--accent)}
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --bg:#fafafa;
+    --bg-elev:#ffffff;
+    --bg-soft:#f4f4f5;
+    --border:#e4e4e7;
+    --text:#09090b;
+    --text-muted:#52525b;
+    --text-subtle:#71717a;
+    --primary:#0f172a;
+    --primary-hover:#1e293b;
+    --accent:#2563eb;
+    --accent-soft:#dbeafe;
+    --error:#dc2626;
+    --error-soft:#fee2e2;
+    --shadow-md:0 4px 6px -1px rgb(0 0 0/.08),0 2px 4px -2px rgb(0 0 0/.05);
+    --radius:10px;
+  }
+  html,body{height:100%;-webkit-font-smoothing:antialiased}
+  body{
+    font-family:'Inter',system-ui,-apple-system,sans-serif;
+    font-feature-settings:"cv11","ss01";
+    background:var(--bg);color:var(--text);
+    display:grid;place-items:center;min-height:100vh;padding:24px;
+  }
+  .card{
+    background:var(--bg-elev);border:1px solid var(--border);border-radius:16px;
+    box-shadow:var(--shadow-md);width:100%;max-width:380px;padding:32px 28px;
+  }
+  .brand{display:flex;align-items:center;gap:12px;margin-bottom:24px}
+  .brand-logo{
+    width:36px;height:36px;border-radius:9px;flex-shrink:0;
+    background:linear-gradient(135deg,#0f172a 0%,#334155 100%);
+    display:flex;align-items:center;justify-content:center;box-shadow:var(--shadow-md);
+  }
+  .brand-logo svg{width:18px;height:18px;color:#fff}
+  .brand-name{font-weight:700;font-size:17px;letter-spacing:-0.01em}
+  .brand-tag{font-size:13px;color:var(--text-subtle)}
+  .heading{font-size:20px;font-weight:700;letter-spacing:-0.02em;margin-bottom:4px}
+  .subheading{font-size:14px;color:var(--text-muted);margin-bottom:24px}
+  .err{
+    background:var(--error-soft);color:var(--error);border:1px solid #fecaca;
+    border-radius:var(--radius);padding:9px 12px;font-size:13px;margin-bottom:16px;
+    display:flex;align-items:flex-start;gap:8px;
+  }
+  .err svg{flex-shrink:0;margin-top:1px}
+  .field{margin-bottom:14px}
+  label.field-label{display:block;font-size:13px;font-weight:600;margin-bottom:5px}
+  input[type=text],input[type=password]{
+    width:100%;border:1px solid var(--border);border-radius:var(--radius);
+    padding:9px 12px;font:inherit;font-size:14px;
+    background:var(--bg-soft);color:var(--text);outline:none;
+    transition:border-color .15s,box-shadow .15s;
+  }
+  input[type=text]:focus,input[type=password]:focus{
+    border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft);
+    background:var(--bg-elev);
+  }
+  .remember{
+    display:flex;align-items:center;gap:8px;margin-bottom:18px;
+    font-size:13px;color:var(--text-muted);cursor:pointer;user-select:none;
+  }
+  .remember input{width:15px;height:15px;accent-color:var(--accent);cursor:pointer}
+  .btn{
+    width:100%;background:var(--primary);color:#fff;border:0;
+    padding:10px 14px;border-radius:var(--radius);
+    font:inherit;font-size:14px;font-weight:600;cursor:pointer;
+    transition:background .15s;
+  }
+  .btn:hover{background:var(--primary-hover)}
+  .foot{margin-top:16px;font-size:12px;color:var(--text-subtle);text-align:center}
 </style>
 </head>
 <body>
 <form class="card" method="post" action="/login">
   <div class="brand">
-    <div class="logo">A</div>
-    <div><h1>AdminBooker</h1><p class="tag">Inloggen om door te gaan</p></div>
+    <div class="brand-logo">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+        <polyline points="14 2 14 8 20 8"/>
+        <line x1="16" y1="13" x2="8" y2="13"/>
+        <line x1="16" y1="17" x2="8" y2="17"/>
+        <polyline points="10 9 9 9 8 9"/>
+      </svg>
+    </div>
+    <div>
+      <div class="brand-name">AdminBooker</div>
+      <div class="brand-tag">AI-boekhouder</div>
+    </div>
   </div>
-  {% if fout %}<div class="err">{{ fout }}</div>{% endif %}
+
+  <p class="heading">Welkom terug</p>
+  <p class="subheading">Log in om door te gaan</p>
+
+  {% if fout %}
+  <div class="err">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+    {{ fout }}
+  </div>
+  {% endif %}
+
   <input type="hidden" name="next" value="{{ nxt|e }}">
-  <label for="u">Gebruikersnaam</label>
-  <input id="u" name="username" value="{{ username|e }}" autocomplete="username" required>
-  <label for="p">Wachtwoord</label>
-  <input id="p" name="password" type="password" autocomplete="current-password"
-         {% if username %}autofocus{% endif %} required>
+
+  <div class="field">
+    <label class="field-label" for="u">Gebruikersnaam</label>
+    <input id="u" name="username" type="text" autocomplete="username"
+           value="{{ username|e }}" required
+           {% if not username %}autofocus{% endif %}>
+  </div>
+
+  <div class="field">
+    <label class="field-label" for="p">Wachtwoord</label>
+    <input id="p" name="password" type="password" autocomplete="current-password"
+           required {% if username %}autofocus{% endif %}>
+  </div>
+
   <label class="remember">
     <input type="checkbox" name="remember" value="1" checked>
     Ingelogd blijven
   </label>
+
   <button class="btn" type="submit">Inloggen</button>
-  <div class="foot">Veilig opgeslagen in jouw eigen instance.</div>
+  <div class="foot">Jouw eigen beveiligde instance.</div>
 </form>
 </body>
 </html>
